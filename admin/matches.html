@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partidos - Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header id="main-header" class="header"></header>
+    <main class="container">
+        <h2>Crear Nuevo Partido</h2>
+        <form id="match-form" class="card form-grid">
+             <div class="form-group">
+                <label for="match-tournament">1. Torneo</label>
+                <select id="match-tournament" required></select>
+            </div>
+            <div class="form-group">
+                <label for="match-player1">2. Jugador</label>
+                <select id="match-player1" required></select>
+            </div>
+            <div class="form-group">
+                <label for="match-player2">3. Jugador</label>
+                <select id="match-player2" required></select>
+            </div>
+            <div class="form-group">
+                <label for="match-date">4. Fecha</label>
+                <input type="date" id="match-date" required>
+            </div>
+            <div class="form-group">
+                <label for="match-time">5. Hora</label>
+                <input type="time" id="match-time" step="900" required>
+            </div>
+            <div class="form-group">
+                <label for="match-location">6. Lugar</label>
+                <input type="text" id="match-location" placeholder="Ej: Cancha 1..." required>
+            </div>
+            <div class="form-group form-group-full">
+                <button type="submit" class="btn">Crear Partido</button>
+            </div>
+        </form>
+        
+        <div class="list-container card">
+             <div class="list-header">
+                <h3>Lista de Partidos</h3>
+                <div class="list-filters">
+                    <input type="text" id="search-player-match" placeholder="Buscar por jugador..." class="filter-input">
+                    <select id="filter-by-category"></select>
+                    <select id="filter-by-team"></select>
+                    <select id="match-filter">
+                        <option value="all">Todos</option>
+                        <option value="pending">Pendientes</option>
+                        <option value="completed">Completados</option>
+                    </select>
+                </div>
+             </div>
+             <div class="table-wrapper">
+                <table class="matches-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Torneo</th>
+                            <th>Jugadores</th>
+                            <th>Lugar</th>
+                            <th>Ganador</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matches-list-tbody">
+                        </tbody>
+                </table>
+             </div>
+        </div>
+    </main>
+  <div id="toast-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/matches.js"></script>
+</body>
+</html>

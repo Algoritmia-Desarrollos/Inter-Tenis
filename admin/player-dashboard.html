@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard del Jugador - Admin</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header id="main-header" class="header"></header>
+    <main class="container">
+        <div class="page-header">
+            <div>
+                <h2 id="player-name-title">Cargando Dashboard...</h2>
+                <h3 id="player-details-subtitle" class="page-subtitle"></h3>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card stat-summary-card">
+                <h3>Resumen de Rendimiento</h3>
+                <div class="chart-container">
+                    <canvas id="win-loss-chart"></canvas>
+                </div>
+                <div id="player-stats" class="stats-container">
+                    </div>
+            </div>
+
+            <div class="dashboard-details-column">
+                <div class="card list-container">
+                    <h3>Torneos Inscritos</h3>
+                    <div id="tournaments-list"></div>
+                </div>
+                <div class="card list-container">
+                    <h3>Historial de Partidos</h3>
+                    <div id="matches-list"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div id="toast-container"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <script src="js/supabaseClient.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/player-dashboard.js"></script> </body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inter Ténis - Rankings</title>
+    <link rel="stylesheet" href="public/public.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <nav class="container">
+            <a href="index.html" class="logo">Inter Ténis</a>
+            <div>
+                <a href="reglamento.html" class="nav-link">Reglamento</a>
+                <a href="admin/index.html" class="nav-link admin-link">Admin</a> 
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="main-header">
+            <h1 class="main-title">Tabla de Posiciones</h1>
+            <div class="filter-container">
+                <label for="tournament-filter">Seleccionar Torneo:</label>
+                <select id="tournament-filter"></select>
+            </div>
+        </div>
+        <div id="rankings-container">
+            <p class="placeholder-text">Seleccione un torneo para ver los rankings.</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 Inter Ténis. Todos los derechos reservados</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="public/public.js"></script> 
+</body>
+</html>

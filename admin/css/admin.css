@@ -1,0 +1,973 @@
+/* --- IMPORTACIÓN DE FUENTES --- */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap');
+
+:root {
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --primary-color: #0a84ff;
+  --text-color: #e1e1e1;
+  --text-secondary-color: #8e8e93;
+  --border-color: #3a3a3c;
+  --danger-color: #ff453a;
+  --success-color: #30d158;
+  --font-body: 'Poppins', sans-serif;
+  --font-heading: 'Poppins', serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+.header { background-color: var(--surface-color); padding: 0; border-bottom: 1px solid var(--border-color); }
+.header .container { display: flex; justify-content: space-between; align-items: center; }
+.main-nav { display: flex; align-items: center; }
+.nav-link { padding: 1rem 1.5rem; text-decoration: none; color: var(--text-secondary-color); font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s ease; }
+.nav-link.active, .nav-link:hover { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+.card { background-color: var(--surface-color); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { margin-bottom: 0.5rem; font-weight: 500; color: var(--text-secondary-color); }
+.form-group input, .form-group select { width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background-color: #2c2c2e; color: var(--text-color); font-size: 1rem; box-sizing: border-box; font-family: var(--font-body); }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; align-items: end; }
+.form-group-full { grid-column: 1 / -1; }
+.btn { background-color: var(--primary-color); color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.2s ease; font-family: var(--font-body); }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(10, 132, 255, 0.3); }
+.btn-danger { background-color: var(--danger-color); }
+.btn-danger:hover { box-shadow: 0 4px 10px rgba(255, 69, 58, 0.3); }
+.list-container { display: grid; gap: 1rem; }
+.list-item { background-color: var(--surface-color); padding: 1rem 1.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+.match-card-admin { background-color: var(--surface-color); padding: 1.5rem; border-radius: 8px; }
+.match-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.match-result-form { display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; align-items: center; }
+.checkbox-list { min-height: 100px; max-height: 200px; overflow-y: auto; background-color: #2c2c2e; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; }
+.placeholder-text, .match-meta, .match-pending { color: var(--text-secondary-color); }
+.match-winner { color: var(--success-color); font-weight: bold; }
+#toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+.toast { background-color: #333; color: white; padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border-left: 4px solid; animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s; }
+.toast.success { border-color: var(--success-color); }
+.toast.error { border-color: var(--danger-color); }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.page-header h2 { margin: 0; font-size: 2rem; }
+.tournament-card { background-color: var(--surface-color); border-radius: 12px; padding: 1.5rem; border-left: 5px solid var(--primary-color); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.tournament-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+.tournament-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+.tournament-card-header h3 { margin: 0; }
+.tournament-card-info { color: var(--text-secondary-color); display: flex; gap: 1.5rem; }
+.tournament-card-actions { display: flex; gap: 0.5rem; }
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); animation: fadeIn 0.3s ease; }
+.modal-content { background-color: var(--surface-color); margin: 10% auto; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; }
+.modal-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+.modal-header h3 { margin: 0; color: var(--primary-color); }
+.close-btn { color: var(--text-secondary-color); font-size: 2rem; font-weight: bold; cursor: pointer; background: none; border: none; }
+.close-btn:hover { color: var(--text-color); }
+.modal-body { padding: 1.5rem; }
+@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.list-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.list-filters { display: flex; align-items: center; gap: 10px; }
+.list-filters select { background-color: #2c2c2e; border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; padding: 0.5rem; }
+.table-wrapper { width: 100%; overflow-x: auto; }
+.matches-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+.matches-table th, .matches-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+.matches-table thead th { background-color: #2c2c2e; color: var(--text-secondary-color); font-weight: 500; }
+.matches-table tbody tr:not(.match-details-row):hover { background-color: #2c2c2e; }
+.matches-table .winner-cell { font-weight: bold; color: var(--success-color); }
+.matches-table .pending-cell { color: #ffcc00; }
+.matches-table .actions-cell { text-align: right; }
+.match-details-row td { padding: 0; background-color: #252527; }
+.details-content { padding: 1.5rem; animation: fadeIn 0.3s ease; }
+.match-details-row.hidden { display: none; }
+.result-form-header { margin-bottom: 1rem; }
+.result-form-header h4 { margin: 0; color: var(--text-secondary-color); }
+.sets-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+.set-input-row { display: flex; align-items: center; gap: 10px; }
+.set-input-row .player-name-label { width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-input-row input[type="number"] { width: 60px; padding: 0.5rem; text-align: center; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+.set-controls { display: flex; gap: 10px; margin-top: 1rem; margin-bottom: 1.5rem; }
+.btn-icon { background-color: #333; border: 1px solid var(--border-color); color: var(--text-color); width: 35px; height: 35px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.btn-icon:hover { background-color: #444; }
+.btn-icon.remove { background-color: var(--danger-color); border: none; color: white; font-size: 1.2rem; }
+.checkbox-list label { display: flex; align-items: center; gap: 10px; }
+.checkbox-list label input[type="checkbox"] { width: auto; }
+.select-all-label { font-size: 1.1em; padding-bottom: 0.5rem; }
+.checkbox-divider { border: none; border-top: 1px solid var(--border-color); margin: 0.5rem 0 1rem 0; }
+.filters-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+.category-title { font-size: 2rem; font-family: var(--font-heading); margin-top: 3rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
+.ranking-table .player-cell { text-align: left; }
+.ranking-table .player-cell .team-name { font-size: 0.8em; color: var(--text-secondary-color); margin-left: 8px; }
+.ranking-table td.promedio, .ranking-table td.position { font-weight: 700; font-size: 1.1rem; color: var(--gold-color); }
+.ranking-table td.points { font-weight: 700; color: var(--text-color); }
+.ranking-table .prom-divisor { font-size: 0.8em; color: var(--text-secondary-color); font-weight: 400; margin-left: 5px; }
+
+/* --- NUEVAS CLASES PARA LAS LÍNEAS DIVISORIAS --- */
+.ranking-table .diff-value {
+    font-size: 0.9em;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+.ranking-table th.divider-left,
+.ranking-table td.divider-left {
+    border-left: 1px solid #4a4a4e;
+}
+
+@media (max-width: 768px) {
+    .container { padding: 10px; }
+    .header .container { flex-direction: column; padding-bottom: 10px; gap: 10px; }
+    .main-nav { width: 100%; overflow-x: auto; justify-content: flex-start; -ms-overflow-style: none; scrollbar-width: none; }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .nav-link { padding: 1rem; white-space: nowrap; }
+    .list-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .list-item .actions { width: 100%; display: flex; justify-content: flex-end; }
+    .match-result-form { grid-template-columns: 1fr; }
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h2 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+/* Tournament Cards */
+.tournament-card {
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 5px solid var(--primary-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tournament-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+.tournament-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+.tournament-card-header h3 {
+    margin: 0;
+}
+.tournament-card-info {
+    color: var(--text-secondary-color);
+    display: flex;
+    gap: 1.5rem;
+}
+.tournament-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+
+/* Modal Styles */
+.modal {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+    animation: fadeIn 0.3s ease;
+}
+.modal-content {
+    background-color: var(--surface-color);
+    margin: 10% auto;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease;
+}
+.modal-header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+.modal-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+.close-btn {
+    color: var(--text-secondary-color);
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+.close-btn:hover {
+    color: var(--text-color);
+}
+.modal-body {
+    padding: 1.5rem;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Mejora de alineación en checkboxes */
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espacio entre el checkbox y el texto */
+}
+
+.checkbox-list label input[type="checkbox"] {
+    width: auto; /* Permite que el checkbox tenga su tamaño natural */
+}
+
+/* Estilos para el nuevo "Seleccionar Todos" */
+.select-all-label {
+    font-size: 1.1em;
+    padding-bottom: 0.5rem;
+}
+
+.checkbox-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.5rem 0 1rem 0;
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Table Styles */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+.matches-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+.matches-table th, .matches-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.matches-table thead th {
+    background-color: #2c2c2e;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+.matches-table tbody tr:hover {
+    background-color: #2c2c2e;
+}
+.matches-table .winner-cell {
+    font-weight: bold;
+    color: var(--success-color);
+}
+.matches-table .pending-cell {
+    color: #ffcc00; /* Amarillo para pendiente */
+}
+.matches-table .actions-cell {
+    text-align: right;
+}
+.matches-table .actions-cell .btn {
+    padding: 0.5rem 1rem;
+}
+
+/* Collapsible Details Row */
+.match-details-row td {
+    padding: 0;
+    background-color: #252527;
+}
+.details-content {
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+.match-details-row.hidden {
+    display: none;
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* List Header with Filters */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.list-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.list-filters select {
+    background-color: #2c2c2e;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+/* Dynamic Set Inputs Styles */
+.sets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+.set-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.set-input-row span {
+    font-weight: 500;
+    width: 50px; /* Alinea los inputs */
+}
+.set-input-row input[type="number"] {
+    width: 60px;
+    padding: 0.5rem;
+    text-align: center;
+}
+/* Oculta las flechas en los inputs de número */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.set-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+}
+.btn-icon {
+    background-color: #333;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.btn-icon:hover {
+    background-color: #444;
+}
+.btn-icon.remove {
+    background-color: var(--danger-color);
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* List Header with Filters */
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.list-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.list-filters select {
+    background-color: #2c2c2e;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+/* Table Styles */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+.matches-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+.matches-table th, .matches-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+.matches-table thead th {
+    background-color: #2c2c2e;
+    color: var(--text-secondary-color);
+    font-weight: 500;
+}
+.matches-table tbody tr:not(.match-details-row):hover {
+    background-color: #2c2c2e;
+}
+.matches-table .winner-cell {
+    font-weight: bold;
+    color: var(--success-color);
+}
+.matches-table .pending-cell {
+    color: #ffcc00; /* Amarillo para pendiente */
+}
+.matches-table .actions-cell {
+    text-align: right;
+}
+
+/* Collapsible Details Row */
+.match-details-row td {
+    padding: 0;
+    background-color: #252527;
+}
+.details-content {
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+.match-details-row.hidden {
+    display: none;
+}
+.result-form-header {
+    margin-bottom: 1rem;
+}
+.result-form-header h4 {
+    margin: 0;
+    color: var(--text-secondary-color);
+}
+.sets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+}
+.set-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.set-input-row .player-name-label {
+    width: 150px; /* Ancho fijo para alinear los inputs */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.set-input-row input[type="number"] {
+    width: 60px;
+    padding: 0.5rem;
+    text-align: center;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] { -moz-appearance: textfield; }
+
+.set-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+.btn-icon {
+    background-color: #333;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+.btn-icon:hover { background-color: #444; }
+.btn-icon.remove { background-color: var(--danger-color); border: none; color: white; font-size: 1.2rem; }
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.list-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.list-filters .filter-input {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: #2c2c2e;
+    color: var(--text-color);
+}
+
+.list-filters select {
+    background-color: #2c2c2e;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+.filters-card {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.category-title {
+    font-size: 2rem;
+    font-family: var(--font-heading);
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.ranking-table td.promedio {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--gold-color);
+}
+.ranking-table td.points {
+    font-weight: 700;
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Player Dashboard Styles */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.stat-card {
+    background-color: var(--surface-color);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+}
+.stat-card h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary-color);
+    font-size: 1rem;
+    font-family: var(--font-body);
+}
+.stat-card p {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+.text-success { color: var(--success-color); }
+.text-danger { color: var(--danger-color); }
+.text-pending { color: #ffcc00; }
+
+.dashboard-columns {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+}
+
+.list-item-simple {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.list-item-simple:last-child {
+    border-bottom: none;
+}
+.match-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.match-history-info small {
+    display: block;
+    color: var(--text-secondary-color);
+}
+.match-history-result {
+    text-align: right;
+}
+.match-history-result span {
+    font-weight: 700;
+}
+.match-history-result small {
+    display: block;
+    color: var(--text-secondary-color);
+}
+
+/* Search Bar in Nav */
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.search-container {
+    position: relative;
+}
+.search-container input {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background-color: #2c2c2e;
+    color: var(--text-color);
+    width: 200px;
+}
+.search-results {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 100;
+}
+.search-results a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+}
+.search-results a:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .dashboard-columns {
+        grid-template-columns: 1fr;
+    }
+    .nav-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Player Dashboard New Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+}
+
+.stat-summary-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container {
+    height: 250px; /* Altura fija para el gráfico */
+    margin-bottom: 2rem;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2x2 grid */
+    gap: 1rem;
+}
+
+.stat-card.mini {
+    padding: 1rem;
+}
+
+.stat-card.mini h4 {
+    font-size: 0.9rem;
+}
+
+.stat-card.mini p {
+    font-size: 1.5rem;
+}
+
+.dashboard-details-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.list-item-simple.interactive {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: background-color 0.2s;
+}
+
+.list-item-simple.interactive:hover {
+    background-color: #2c2c2e;
+}
+
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Player Dashboard New Styles */
+.page-subtitle {
+    font-family: var(--font-body);
+    color: var(--text-secondary-color);
+    font-weight: 400;
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.stat-card.mini {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.stat-card.mini:hover {
+    background-color: #333;
+}
+
+.stat-card.mini.active {
+    border-color: var(--primary-color);
+    background-color: #2c2c2e;
+}
+
+.list-item-simple.interactive {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    padding: 1rem;
+    margin: -1rem; /* Compensa el padding para hacer toda la fila clicable */
+    border-radius: 8px; /* Coincide con el padding de .list-item */
+    transition: background-color 0.2s;
+}
+
+.list-item-simple.interactive:hover {
+    background-color: #2c2c2e;
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Player Dashboard New Styles */
+.page-subtitle {
+    font-family: var(--font-body);
+    color: var(--text-secondary-color);
+    font-weight: 400;
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.stat-card.mini {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.stat-card.mini:hover {
+    background-color: #333;
+}
+
+.stat-card.mini.active {
+    border-color: var(--primary-color);
+    background-color: #2c2c2e;
+}
+
+.list-item-simple.interactive {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    padding: 1rem;
+    margin: -1rem; /* Compensa el padding para hacer toda la fila clicable */
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.list-item-simple.interactive:hover {
+    background-color: #2c2c2e;
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+.ranking-table .player-cell {
+    text-align: left;
+}
+.ranking-table .player-cell .team-name {
+    font-size: 0.8em;
+    color: var(--text-secondary-color);
+    margin-left: 8px;
+}
+
+.ranking-table td.promedio, .ranking-table td.position {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--gold-color);
+}
+.ranking-table td.points {
+    font-weight: 700;
+    color: var(--text-color);
+}
+.ranking-table .prom-divisor {
+    font-size: 0.8em;
+    color: var(--text-secondary-color);
+    font-weight: 400;
+    margin-left: 5px;
+}
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+.ranking-table .diff-value {
+    font-size: 0.9em;
+    color: var(--text-secondary-color);
+}
+
+.ranking-table thead th.divider-left {
+    border-left: 1px solid #4a4a4e;
+}
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Nuevo Layout de Editor */
+.editor-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.list-column h3, .editor-column h3 {
+    margin-top: 0;
+}
+
+/* Lista de torneos seleccionable */
+.selectable-list .list-item {
+    cursor: pointer;
+    border-left: 4px solid transparent;
+}
+.selectable-list .list-item:hover {
+    background-color: #2c2c2e;
+    border-left-color: #555;
+}
+.selectable-list .list-item.active {
+    background-color: #2c2c2e;
+    border-left-color: var(--primary-color);
+}
+.selectable-list .list-item-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+
+/* Panel de Edición */
+.player-management-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+.player-sublist {
+    background-color: #2c2c2e;
+    border-radius: 8px;
+    padding: 1rem;
+    height: 300px;
+    overflow-y: auto;
+}
+.player-sublist h4 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+.player-management-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+.player-management-item .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+.editor-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    min-height: 400px;
+    color: var(--text-secondary-color);
+    text-align: center;
+}
+
+/* Responsive para el editor */
+@media (max-width: 992px) {
+    .editor-grid {
+        grid-template-columns: 1fr;
+    }
+}

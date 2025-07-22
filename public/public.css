@@ -1,0 +1,68 @@
+/* --- IMPORTACIÓN DE FUENTES --- */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap');
+:root {
+  --background-color: #121212; --surface-color: #1e1e1e; --primary-color: #0a84ff;
+  --text-color: #e1e1e1; --text-secondary-color: #8e8e93; --border-color: #3a3a3c;
+  --gold-color: #ffcc00; --font-body: 'Poppins', sans-serif; --font-heading: 'Lora', serif;
+}
+body { background-color: var(--background-color); color: var(--text-color); font-family: var(--font-body); margin: 0; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); font-weight: 700; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.header { background-color: var(--surface-color); padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
+.header nav { display: flex; justify-content: space-between; align-items: center; }
+.logo { font-size: 1.5rem; font-weight: 700; color: white; text-decoration: none; }
+.nav-link { color: var(--text-secondary-color); text-decoration: none; transition: color 0.2s; }
+.nav-link:hover { color: white; }
+.main-header { text-align: center; margin: 40px 0; }
+.main-title { font-size: 3rem; margin: 0; }
+.filter-container { margin-top: 1.5rem; }
+.filter-container label { margin-right: 1rem; color: var(--text-secondary-color); }
+#tournament-filter { background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; font-size: 1rem; font-family: var(--font-body); }
+.category-title { font-size: 2rem; margin-top: 3rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; }
+.table-wrapper { background-color: var(--surface-color); border-radius: 12px; overflow-x: auto; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+thead { background-color: #2c2c2e; }
+th, td { padding: 1rem 1.25rem; text-align: center; white-space: nowrap; }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--text-secondary-color); text-transform: uppercase; font-size: 0.75rem; font-weight: 500; }
+tbody tr { border-bottom: 1px solid var(--border-color); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background-color: #2c2c2e; }
+td.player-cell .team-name { font-size: 0.8em; color: var(--text-secondary-color); margin-left: 8px; }
+td.promedio, td.position { font-weight: 700; font-size: 1.1rem; color: var(--gold-color); }
+td.points { font-weight: 700; }
+.prom-divisor { font-size: 0.8em; color: var(--text-secondary-color); font-weight: 400; margin-left: 5px; }
+.diff-value { font-size: 0.9em; color: var(--text-secondary-color); font-weight: 500; }
+th.divider-left, td.divider-left { border-left: 1px solid #4a4a4e; }
+.footer { text-align: center; padding: 2rem 0; margin-top: 40px; color: var(--text-secondary-color); border-top: 1px solid var(--border-color); }
+.card-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+.card { background-color: var(--surface-color); padding: 1.5rem; border-radius: 12px; }
+.card h2 { margin-top: 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.card ul, .card ol { padding-left: 20px; }
+.card li { margin-bottom: 0.5rem; }
+
+
+/* --- AÑADIR ESTAS CLASES AL FINAL DE TU ARCHIVO public.css --- */
+
+/* Estilo para el botón de Admin en el menú */
+.nav-link.admin-link {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.nav-link.admin-link:hover {
+    color: white;
+    background-color: #0060df; /* Un azul un poco más oscuro */
+    transform: translateY(-1px);
+}
+
+/* Contenedor para los enlaces de navegación */
+.header nav div {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
