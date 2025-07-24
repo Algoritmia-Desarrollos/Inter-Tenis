@@ -105,10 +105,18 @@ async function handleMatchSubmit(event) {
     }
     const { data: tournament } = await supabase.from('tournaments').select('category_id').eq('id', tournamentId).single();
     if (!tournament) return showToast('Error: Torneo no encontrado.', 'error');
+
     const { error } = await supabase.from('matches').insert([{ 
-        tournament_id: tournamentId, player1_id: player1Id, player2_id: player2Id, 
-        category_id: tournament.category_id, match_date: date, match_time: time, location: location
+        tournament_id: tournamentId, 
+        player1_id: player1Id, 
+        player2_id: player2Id, 
+        category_id: tournament.category_id, 
+        match_date: date, 
+        match_time: time, 
+        location: location,
+        submission_token: crypto.randomUUID()
     }]);
+
     if(error) {
         showToast(`Error: ${error.message}`, 'error');
     } else {
@@ -122,6 +130,7 @@ async function handleMatchSubmit(event) {
 async function renderMatchesList() {
     const tbody = document.getElementById('matches-list-tbody');
     tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text">Cargando...</td></tr>';
+    
     const statusFilter = document.getElementById('match-filter').value;
     const searchTerm = document.getElementById('search-player-match').value.toLowerCase();
     const categoryFilter = document.getElementById('filter-by-category').value;
@@ -174,8 +183,19 @@ async function renderMatchesList() {
     });
 }
 
+// **CORRECCIÓN: Se ajusta la URL para incluir la carpeta /public/**
+function getResultUrl(matchId, token) {
+    // Construye la URL base a partir de la ubicación actual.
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/public/submit-result.html?id=${matchId}&token=${token}`;
+}
+
 function shareMatchLink(matchId, token) {
-    const url = `${window.location.origin.replace('/admin', '')}/submit-result.html?id=${matchId}&token=${token}`;
+    if (!token || token === 'null') {
+        showToast('Este partido no tiene un enlace para compartir.', 'error');
+        return;
+    }
+    const url = getResultUrl(matchId, token);
     navigator.clipboard.writeText(url).then(() => {
         showToast('¡Enlace para cargar resultado copiado!');
     }).catch(err => {
@@ -183,9 +203,12 @@ function shareMatchLink(matchId, token) {
     });
 }
 
-// --- NUEVA FUNCIÓN: Abre la página de carga en una nueva pestaña ---
 function editMatchResult(matchId, token) {
-    const url = `${window.location.origin.replace('/admin', '')}/submit-result.html?id=${matchId}&token=${token}`;
+    if (!token || token === 'null') {
+        showToast('Este partido no tiene un enlace para editar el resultado.', 'error');
+        return;
+    }
+    const url = getResultUrl(matchId, token);
     window.open(url, '_blank');
 }
 

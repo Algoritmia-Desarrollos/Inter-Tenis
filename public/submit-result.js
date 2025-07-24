@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const { data: match, error } = await supabase
         .from('matches')
-        .select('*, player1:player1_id(name), player2:player2_id(name)')
+        .select('*, player1:player1_id(id, name), player2:player2_id(id, name)')
         .eq('id', matchId)
         .eq('submission_token', token)
         .single();
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // Permitir editar si ya hay un ganador
     currentMatch = match;
     renderResultForm(match);
 });
@@ -51,8 +50,8 @@ function renderResultForm(match) {
                     <label>¿Quién ganó el partido?</label>
                     <select id="winner-select" class="filter-input" required>
                         <option value="" disabled selected>Selecciona al ganador...</option>
-                        <option value="${match.player1_id}">${match.player1.name}</option>
-                        <option value="${match.player2_id}">${match.player2.name}</option>
+                        <option value="${match.player1.id}">${match.player1.name}</option>
+                        <option value="${match.player2.id}">${match.player2.name}</option>
                     </select>
                 </div>
                 <div class="form-group-full" style="margin-top: 2rem;">
@@ -71,16 +70,7 @@ function renderSetInputs(match) {
     const sets = match.sets && match.sets.length > 0 ? match.sets : [{ p1: '', p2: '' }];
 
     sets.forEach((set, index) => {
-        const setRow = document.createElement('div');
-        setRow.className = 'set-input-row';
-        setRow.innerHTML = `
-            <span>Set ${index + 1}:</span>
-            <input type="number" min="0" max="10" placeholder="Games" value="${set.p1 || ''}" required>
-            <span>-</span>
-            <input type="number" min="0" max="10" placeholder="Games" value="${set.p2 || ''}" required>
-            ${index > 0 ? `<button type="button" class="btn-icon remove" onclick="this.parentElement.remove()">−</button>` : ''}
-        `;
-        container.appendChild(setRow);
+        addSetInput(set.p1, set.p2);
     });
 
     if (match.winner_id) {
@@ -88,8 +78,7 @@ function renderSetInputs(match) {
     }
 }
 
-
-function addSetInput() {
+function addSetInput(p1_score = '', p2_score = '') {
     const container = document.getElementById('sets-container');
     if (container.children.length >= 3) {
         alert('Máximo 3 sets por partido.');
@@ -100,9 +89,11 @@ function addSetInput() {
     setRow.className = 'set-input-row';
     setRow.innerHTML = `
         <span>Set ${setCount}:</span>
-        <input type="number" min="0" max="10" placeholder="Games" required>
+        <label>${currentMatch.player1.name}</label>
+        <input type="number" min="0" max="10" placeholder="Games" value="${p1_score}" data-player-id="${currentMatch.player1.id}" required>
         <span>-</span>
-        <input type="number" min="0" max="10" placeholder="Games" required>
+        <input type="number" min="0" max="10" placeholder="Games" value="${p2_score}" data-player-id="${currentMatch.player2.id}" required>
+        <label>${currentMatch.player2.name}</label>
         ${setCount > 1 ? `<button type="button" class="btn-icon remove" onclick="this.parentElement.remove()">−</button>` : ''}
     `;
     container.appendChild(setRow);
@@ -118,15 +109,12 @@ async function handleResultSubmit(event) {
         const inputs = row.querySelectorAll('input[type="number"]');
         const games1 = parseInt(inputs[0].value);
         const games2 = parseInt(inputs[1].value);
+
         if (isNaN(games1) || isNaN(games2)) {
             alert('Todos los campos de games son obligatorios.');
             return;
         }
-        // Asignar games al jugador correcto (p1 vs p2)
-        sets.push({
-            p1: winnerId === currentMatch.player1_id ? Math.max(games1, games2) : Math.min(games1, games2),
-            p2: winnerId === currentMatch.player2_id ? Math.max(games1, games2) : Math.min(games1, games2)
-        });
+        sets.push({ p1: games1, p2: games2 });
     }
 
     if (sets.length === 0) {
