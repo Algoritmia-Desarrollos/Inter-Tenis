@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .single();
 
     if (error || !program) {
-        container.innerHTML = `<h1>Programa no encontrado</h1><p>No se encontró un programa con el slug: ${slug}</p>`;
+        container.innerHTML = `<h1>Programa no encontrado</h1><p>No se encontró un programa con el slug: <strong>${slug}</strong></p>`;
         return;
     }
 
@@ -70,9 +70,10 @@ function renderProgram(program, container) {
             dayMatches.forEach(match => {
                 const court = match.location.split(' - ')[1]?.trim() || '-';
                 
-                let anotadorHtml = '<span>No disponible</span>';
-                // --- ESTA ES LA LÓGICA CLAVE ---
-                // Verifica que el token exista en los datos del partido antes de crear el enlace.
+                const p1Class = match.p1_confirmed ? 'player-confirmed' : 'player-unconfirmed';
+                const p2Class = match.p2_confirmed ? 'player-confirmed' : 'player-unconfirmed';
+                
+                let anotadorHtml = '<span style="color: var(--text-secondary-color);">No disponible</span>';
                 if (match.submission_token) {
                     const submitUrl = `submit-result.html?id=${match.id}&token=${match.submission_token}`;
                     anotadorHtml = `<a href="${submitUrl}" class="btn-program" target="_blank">Anotar</a>`;
@@ -82,9 +83,9 @@ function renderProgram(program, container) {
                     <tr>
                         <td>${court}</td>
                         <td>${match.match_time ? match.match_time.substring(0, 5) : ''} hs</td>
-                        <td class="player-name">${match.player1.name}</td>
+                        <td class="player-name ${p1Class}">${match.player1.name}</td>
                         <td class="vs-cell">vs</td>
-                        <td class="player-name">${match.player2.name}</td>
+                        <td class="player-name ${p2Class}">${match.player2.name}</td>
                         <td>${match.categories ? match.categories.name : 'N/A'}</td>
                         <td>${anotadorHtml}</td>
                     </tr>

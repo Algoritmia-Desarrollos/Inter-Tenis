@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         { href: 'players.html', text: 'Jugadores' },
         { href: 'teams.html', text: 'Equipos' },
         { href: 'categories.html', text: 'Categorías' },
+        { href: 'programs.html', text: 'Programas' }, // NUEVO ENLACE
         { href: 'rankings.html', text: 'Rankings' }
     ];
 

@@ -4,18 +4,17 @@ let allPlayers = [];
 let allTournaments = [];
 let allCategories = [];
 let allTeams = [];
+let pendingConfirmations = new Map();
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
     await fetchDataForForms();
+    setupEventListeners(); // Movido antes de renderMatchesList para asegurar que el calendario exista
     await renderMatchesList();
-    
-    setupEventListeners();
     loadSavedFormData();
 });
 
 async function fetchDataForForms() {
-    // Carga todos los datos necesarios de Supabase al iniciar la página
     const { data: playersData } = await supabase.from('players').select('*').order('name');
     const { data: tournamentsData } = await supabase.from('tournaments').select('*, categories(name)').order('created_at', { ascending: false });
     const { data: categoriesData } = await supabase.from('categories').select('*').order('name');
@@ -32,29 +31,42 @@ async function fetchDataForForms() {
 }
 
 function setupEventListeners() {
-    // Formulario de creación
+    const clearDateBtn = document.getElementById('clear-date-filter');
+    const datePickerInput = document.getElementById('date-range-picker');
+
+    // Inicialización del calendario Flatpickr
+    const datePicker = flatpickr(datePickerInput, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: "es",
+        onClose: function(selectedDates, dateStr, instance) {
+            // Mostrar u ocultar el botón de limpiar
+            if (selectedDates.length > 0) {
+                clearDateBtn.style.display = 'block';
+            } else {
+                clearDateBtn.style.display = 'none';
+            }
+            renderMatchesList();
+        }
+    });
+
+    // Event listener para el botón de limpiar
+    clearDateBtn.addEventListener('click', () => {
+        datePicker.clear();
+        // renderMatchesList() es llamado por el evento onClose de flatpickr al limpiar.
+    });
+
     document.getElementById('match-form').addEventListener('submit', handleMatchSubmit);
     document.getElementById('match-tournament').addEventListener('change', () => populatePlayerSelectsForMatch(document.getElementById('match-tournament').value, 'match-player1', 'match-player2'));
     document.getElementById('match-venue').addEventListener('change', populateCourtSelect);
-
-    // Filtros de la lista
     document.getElementById('match-filter').addEventListener('change', renderMatchesList);
     document.getElementById('filter-by-category').addEventListener('change', renderMatchesList);
     document.getElementById('filter-by-team').addEventListener('change', renderMatchesList);
     document.getElementById('search-player-match').addEventListener('input', renderMatchesList);
-    document.getElementById('start-date').addEventListener('change', renderMatchesList);
-    document.getElementById('end-date').addEventListener('change', renderMatchesList);
-    document.getElementById('clear-dates-btn').addEventListener('click', () => {
-        document.getElementById('start-date').value = '';
-        document.getElementById('end-date').value = '';
-        renderMatchesList();
-    });
     
-    // Programa de partidos
     document.getElementById('select-all-matches').addEventListener('change', handleSelectAll);
     document.getElementById('generate-program-btn').addEventListener('click', handleGenerateProgram);
-
-    // Modal
+    document.getElementById('save-confirmations-btn').addEventListener('click', saveConfirmations);
     document.getElementById('close-modal-btn').addEventListener('click', closeEditModal);
     window.addEventListener('click', (event) => {
         if (event.target == document.getElementById('edit-match-modal')) {
@@ -221,10 +233,20 @@ async function renderMatchesList() {
     const categoryFilter = document.getElementById('filter-by-category').value;
     const teamFilter = document.getElementById('filter-by-team').value;
     const searchTerm = document.getElementById('search-player-match').value.toLowerCase();
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
+    
+    // CORRECCIÓN: Lógica robusta para obtener fechas del calendario
+    const datePickerEl = document.querySelector("#date-range-picker");
+    let startDate = null;
+    let endDate = null;
+    if (datePickerEl && datePickerEl._flatpickr) {
+        const selectedDates = datePickerEl._flatpickr.selectedDates;
+        if (selectedDates.length > 0) {
+            startDate = selectedDates[0].toISOString().slice(0, 10);
+            endDate = (selectedDates.length > 1) ? selectedDates[1].toISOString().slice(0, 10) : startDate;
+        }
+    }
 
-    let query = supabase.from('matches').select(`*, player1:player1_id(name, team_id), player2:player2_id(name, team_id), winner:winner_id(name), tournaments(name)`);
+    let query = supabase.from('matches').select(`*, p1_confirmed, p2_confirmed, player1:player1_id(name, team_id), player2:player2_id(name, team_id), winner:winner_id(name), tournaments(name)`);
     if (statusFilter === 'pending') query = query.is('winner_id', null);
     if (statusFilter === 'completed') query = query.not('winner_id', 'is', null);
     if (categoryFilter !== 'all') query = query.eq('category_id', categoryFilter);
@@ -234,7 +256,7 @@ async function renderMatchesList() {
     const { data: matches, error } = await query.order('match_date', { ascending: true }).order('match_time', { ascending: true });
 
     if (error) {
-        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text">Error al cargar los partidos.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="6" class="placeholder-text">Error al cargar los partidos: ${error.message}</td></tr>`;
         return;
     }
     
@@ -261,12 +283,21 @@ async function renderMatchesList() {
         row.setAttribute('onclick', `openEditModal(${match.id})`);
         
         const checkboxCell = isPending ? `<td><input type="checkbox" class="match-checkbox" data-id="${match.id}" onclick="event.stopPropagation()"></td>` : '<td></td>';
+        const p1ConfirmedIcon = match.p1_confirmed ? '<span class="status-icon confirmed">✔</span>' : '<span class="status-icon pending">?</span>';
+        const p2ConfirmedIcon = match.p2_confirmed ? '<span class="status-icon confirmed">✔</span>' : '<span class="status-icon pending">?</span>';
 
         row.innerHTML = `
             ${checkboxCell}
             <td>${matchDateTime}</td>
             <td>${match.tournaments ? match.tournaments.name : 'N/A'}</td>
-            <td><strong>${match.player1.name}</strong> vs <strong>${match.player2.name}</strong></td>
+            <td>
+                <span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p1', ${!match.p1_confirmed})">
+                    ${p1ConfirmedIcon} <strong>${match.player1.name}</strong>
+                </span> vs 
+                <span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p2', ${!match.p2_confirmed})">
+                    ${p2ConfirmedIcon} <strong>${match.player2.name}</strong>
+                </span>
+            </td>
             <td>${match.location}</td>
             <td class="${isPending ? 'pending-cell' : 'winner-cell'}">${isPending ? 'Pendiente' : (match.winner ? match.winner.name : 'Completado')}</td>
         `;
@@ -279,6 +310,51 @@ async function renderMatchesList() {
     updateProgramButtonState();
 }
 
+// --- LÓGICA DE CONFIRMACIÓN RÁPIDA ---
+
+function toggleConfirmation(event, matchId, playerKey, newStatus) {
+    event.stopPropagation();
+    
+    const toggleSpan = event.currentTarget;
+    const icon = toggleSpan.querySelector('.status-icon');
+    icon.textContent = newStatus ? '✔' : '?';
+    icon.className = `status-icon ${newStatus ? 'confirmed' : 'pending'}`;
+    
+    toggleSpan.setAttribute('onclick', `toggleConfirmation(event, ${matchId}, '${playerKey}', ${!newStatus})`);
+
+    const confirmationKey = `${playerKey}_confirmed`;
+    if (!pendingConfirmations.has(matchId)) {
+        pendingConfirmations.set(matchId, {});
+    }
+    pendingConfirmations.get(matchId)[confirmationKey] = newStatus;
+
+    document.getElementById('save-confirmations-btn').style.display = 'block';
+}
+
+async function saveConfirmations() {
+    const saveBtn = document.getElementById('save-confirmations-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Guardando...';
+
+    const updatePromises = [];
+    for (const [id, changes] of pendingConfirmations.entries()) {
+        const promise = supabase.from('matches').update(changes).eq('id', id);
+        updatePromises.push(promise);
+    }
+
+    try {
+        await Promise.all(updatePromises);
+        showToast('Confirmaciones guardadas con éxito.', 'success');
+        pendingConfirmations.clear();
+        saveBtn.style.display = 'none';
+    } catch (error) {
+        showToast(`Error al guardar: ${error.message}`, 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar Cambios de Asistencia';
+    }
+}
+
 // --- LÓGICA DE LA VENTANA MODAL DE EDICIÓN ---
 
 async function openEditModal(matchId) {
@@ -287,13 +363,15 @@ async function openEditModal(matchId) {
     modalBody.innerHTML = '<p class="placeholder-text">Cargando datos del partido...</p>';
     modal.style.display = 'block';
 
-    const { data: match, error } = await supabase.from('matches').select('*, tournament_id, player1:player1_id(name), player2:player2_id(name)').eq('id', matchId).single();
+    const { data: match, error } = await supabase.from('matches').select('*, tournament_id, p1_confirmed, p2_confirmed, player1:player1_id(name), player2:player2_id(name)').eq('id', matchId).single();
     if (error) {
         modalBody.innerHTML = '<p class="placeholder-text">Error al cargar el partido.</p>';
         return;
     }
 
     const [venue, court] = match.location.split(' - ');
+    const isPending = !match.winner_id;
+    const resultSectionDisplay = isPending ? 'style="display:none;"' : '';
 
     modalBody.innerHTML = `
         <form id="edit-match-form">
@@ -308,7 +386,17 @@ async function openEditModal(matchId) {
                 <div class="form-group"><label>Cancha</label><select id="edit-court"></select></div>
             </div>
 
-            <div class="result-section">
+            <div class="confirmation-section">
+                <h4>Confirmación de Asistencia</h4>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="p1-confirmed" ${match.p1_confirmed ? 'checked' : ''}> ${match.player1.name}</label>
+                    <label><input type="checkbox" id="p2-confirmed" ${match.p2_confirmed ? 'checked' : ''}> ${match.player2.name}</label>
+                </div>
+            </div>
+
+            ${isPending ? '<button type="button" class="btn btn-secondary" style="margin-top: 1rem;" onclick="toggleResultSection(this)">Cargar/Modificar Resultado</button>' : ''}
+
+            <div id="result-section" class="result-section" ${resultSectionDisplay}>
                 <h4>Resultado del Partido</h4>
                 <div id="sets-container"></div>
                 <div class="set-controls"><button type="button" class="btn-icon" onclick="addSetInput(null, ${match.player1_id}, ${match.player2_id})">+</button></div>
@@ -322,9 +410,12 @@ async function openEditModal(matchId) {
                 </div>
             </div>
             
-            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
-                <button type="submit" class="btn">Guardar Cambios</button>
+            <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-danger" onclick="handleDeleteMatch(${match.id})">Eliminar Partido</button>
+                <div>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Cambios</button>
+                </div>
             </div>
         </form>
     `;
@@ -342,9 +433,24 @@ async function openEditModal(matchId) {
     }
     editCourtSelect.value = court;
 
-    (match.sets && match.sets.length > 0 ? match.sets : [{p1:'', p2:''}]).forEach(set => addSetInput(set, match.player1_id, match.player2_id));
+    if (match.sets && match.sets.length > 0) {
+        match.sets.forEach(set => addSetInput(set, match.player1_id, match.player2_id));
+    }
 
     document.getElementById('edit-match-form').addEventListener('submit', handleUpdateMatch);
+}
+
+function toggleResultSection(button) {
+    const section = document.getElementById('result-section');
+    const isHidden = section.style.display === 'none';
+    section.style.display = isHidden ? 'block' : 'none';
+    button.textContent = isHidden ? 'Ocultar Resultado' : 'Cargar/Modificar Resultado';
+    if (isHidden && document.getElementById('sets-container').childElementCount === 0) {
+        const form = button.closest('form');
+        const p1Id = form.querySelector('#edit-player1').value;
+        const p2Id = form.querySelector('#edit-player2').value;
+        addSetInput(null, parseInt(p1Id), parseInt(p2Id));
+    }
 }
 
 function closeEditModal() {
@@ -377,7 +483,9 @@ async function handleUpdateMatch(event) {
         location: `${venue} - ${court}`,
         winner_id: winnerId ? parseInt(winnerId) : null,
         sets: sets.length > 0 ? sets : null,
-        bonus_loser: sets.length === 3
+        bonus_loser: sets.length === 3,
+        p1_confirmed: document.getElementById('p1-confirmed').checked,
+        p2_confirmed: document.getElementById('p2-confirmed').checked,
     };
 
     const { error } = await supabase.from('matches').update(updateData).eq('id', matchId);
@@ -387,6 +495,23 @@ async function handleUpdateMatch(event) {
     } else {
         showToast('Partido actualizado con éxito.', 'success');
         closeEditModal();
+        renderMatchesList();
+    }
+}
+
+async function handleDeleteMatch(matchId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este partido? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    closeEditModal();
+    showToast('Eliminando partido...');
+
+    const { error } = await supabase.from('matches').delete().eq('id', matchId);
+
+    if (error) {
+        showToast(`Error al eliminar: ${error.message}`, 'error');
+    } else {
+        showToast('Partido eliminado con éxito.', 'success');
         renderMatchesList();
     }
 }
@@ -428,7 +553,7 @@ async function handleGenerateProgram() {
     if (existingProgram) return showToast('Ya existe un programa con un título similar. Elige otro.', 'error');
 
     const { data: matchesData, error: matchesError } = await supabase.from('matches')
-        .select(`*, player1:player1_id(name), player2:player2_id(name), tournaments(name), categories(name)`)
+        .select(`*, submission_token, p1_confirmed, p2_confirmed, player1:player1_id(name), player2:player2_id(name), tournaments(name), categories(name)`)
         .in('id', selectedIds);
 
     if (matchesError) return showToast(`Error al obtener datos: ${matchesError.message}`, 'error');
