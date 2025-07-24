@@ -57,7 +57,7 @@ function renderEditor() {
         <form id="tournament-form" class="form-grid">
             <div class="form-group">
                 <label for="tournament-name">Nombre del Torneo</label>
-                <input type="text" id="tournament-name" value="${currentEditingState.tournament.name}" required>
+                <input type="text" id="tournament-name" value="${currentEditingState.tournament.name || ''}" required>
             </div>
             <div class="form-group">
                 <label for="tournament-category">Categoría</label>
@@ -118,7 +118,7 @@ async function loadTournamentForEditing(tournamentId) {
 async function handleCategoryChange(event) {
     const categoryId = event.target.value;
     currentEditingState.tournament.category_id = categoryId;
-    currentEditingState.enrolledPlayers = []; // Reset enrolled players when category changes
+    currentEditingState.enrolledPlayers = []; 
 
     if (categoryId) {
         const { data: players } = await supabase.from('players').select('*').eq('category_id', categoryId);
@@ -136,18 +136,10 @@ function renderPlayerLists() {
     enrolledContainer.innerHTML = '';
 
     currentEditingState.availablePlayers.forEach(p => {
-        availableContainer.innerHTML += `
-            <div class="player-management-item">
-                <span>${p.name}</span>
-                <button class="btn" onclick="addPlayer(${p.id})">Añadir &rarr;</button>
-            </div>`;
+        availableContainer.innerHTML += `<div class="player-management-item"><span>${p.name}</span><button class="btn" onclick="addPlayer(${p.id})">Añadir &rarr;</button></div>`;
     });
     currentEditingState.enrolledPlayers.forEach(p => {
-        enrolledContainer.innerHTML += `
-            <div class="player-management-item">
-                <span>&larr; Sacar</span>
-                <button class="btn btn-secondary" onclick="removePlayer(${p.id})">${p.name}</button>
-            </div>`;
+        enrolledContainer.innerHTML += `<div class="player-management-item"><button class="btn btn-secondary" onclick="removePlayer(${p.id})">&larr; Sacar</button><span>${p.name}</span></div>`;
     });
 }
 
@@ -159,7 +151,13 @@ function addPlayer(playerId) {
     renderPlayerLists();
 }
 
-function removePlayer(playerId) {
+async function removePlayer(playerId) {
+    const { data: matches } = await supabase.from('matches').select('id', { count: 'exact' }).eq('tournament_id', currentEditingState.tournament.id).or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`);
+    if (matches && matches.length > 0) {
+        if (!confirm(`¡ADVERTENCIA!\n\nEste jugador ya ha jugado ${matches.length} partido(s). Si lo sacas, se perderá su progreso.\n\n¿Continuar?`)) {
+            return;
+        }
+    }
     const player = currentEditingState.enrolledPlayers.find(p => p.id === playerId);
     if (!player) return;
     currentEditingState.availablePlayers.push(player);
@@ -176,20 +174,23 @@ async function handleSaveChanges() {
     if (enrolledPlayers.length < 2) return showToast('Debe haber al menos 2 jugadores inscritos.', 'error');
 
     const tournamentData = { name: tournament.name, category_id: tournament.category_id };
+    let currentTournamentId = tournament.id;
     
     if (tournament.id) { // Editando
         await supabase.from('tournaments').update(tournamentData).eq('id', tournament.id);
         await supabase.from('tournament_players').delete().eq('tournament_id', tournament.id);
     } else { // Creando
         const { data: newTournament } = await supabase.from('tournaments').insert(tournamentData).select().single();
-        tournament.id = newTournament.id;
+        currentTournamentId = newTournament.id;
     }
     
-    const playersToInsert = enrolledPlayers.map(p => ({ tournament_id: tournament.id, player_id: p.id }));
-    await supabase.from('tournament_players').insert(playersToInsert);
+    const playersToInsert = enrolledPlayers.map(p => ({ tournament_id: currentTournamentId, player_id: p.id }));
+    const { error: insertError } = await supabase.from('tournament_players').insert(playersToInsert);
+
+    if(insertError) return showToast(`Error al inscribir jugadores: ${insertError.message}`, 'error');
     
     showToast('Torneo guardado con éxito.', 'success');
-    await renderTournamentsList(tournament.id);
+    await renderTournamentsList(currentTournamentId);
 }
 
 async function deleteTournament(id) {

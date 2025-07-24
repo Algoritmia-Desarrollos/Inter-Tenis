@@ -67,9 +67,11 @@ async function populatePlayerSelectsForMatch() {
         
         if (tournamentPlayers) {
             tournamentPlayers.forEach(tp => {
-                const option = `<option value="${tp.players.id}">${tp.players.name}</option>`;
-                p1Select.innerHTML += option;
-                p2Select.innerHTML += option;
+                if(tp.players) {
+                    const option = `<option value="${tp.players.id}">${tp.players.name}</option>`;
+                    p1Select.innerHTML += option;
+                    p2Select.innerHTML += option;
+                }
             });
         }
     }
@@ -87,7 +89,7 @@ async function handlePlayerSelectionChange() {
     const { data: tournamentPlayers } = await supabase.from('tournament_players').select('players(id, name)').eq('tournament_id', tournamentId);
     if (!tournamentPlayers) return;
 
-    const playersInTournament = tournamentPlayers.map(tp => tp.players);
+    const playersInTournament = tournamentPlayers.map(tp => tp.players).filter(Boolean);
 
     p2Select.innerHTML = '<option value="">Seleccionar jugador</option>';
     playersInTournament.forEach(player => {
@@ -130,6 +132,7 @@ async function handleMatchSubmit(event) {
         match_date: date, 
         match_time: time, 
         location: location
+        // El token `submission_token` se genera automáticamente por defecto en la DB
     }]);
 
     if(error) {
@@ -151,24 +154,22 @@ async function renderMatchesList() {
     const categoryFilter = document.getElementById('filter-by-category').value;
     const teamFilter = document.getElementById('filter-by-team').value;
 
-    // --- CORRECCIÓN CLAVE: Consulta a Supabase más explícita ---
     let query = supabase.from('matches').select(`
-        id, match_date, match_time, location, winner_id,
+        id, match_date, match_time, location, winner_id, submission_token,
         player1:player1_id(name, team_id),
         player2:player2_id(name, team_id),
         winner:winner_id(name),
-        tournaments(name),
-        categories(id)
+        tournaments(name)
     `);
 
     if (statusFilter === 'pending') query = query.is('winner_id', null);
     if (statusFilter === 'completed') query = query.not('winner_id', 'is', null);
     if (categoryFilter !== 'all') query = query.eq('category_id', categoryFilter);
 
-    const { data: matches, error } = await query.order('match_date', { ascending: false });
+    const { data: matches, error } = await query.order('match_date', { ascending: false }).order('match_time', { ascending: false });
 
     if (error) {
-        console.error(error); // Muestra el error detallado en la consola del navegador
+        console.error("Error fetching matches:", error);
         tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text" style="text-align: center;">Error al cargar los partidos.</td></tr>';
         return;
     }
@@ -201,6 +202,7 @@ async function renderMatchesList() {
             <td>${match.location}</td>
             <td class="${match.winner ? 'winner-cell' : 'pending-cell'}">${match.winner ? match.winner.name : 'Pendiente'}</td>
             <td class="actions-cell">
+                ${!match.winner ? `<button class="btn btn-secondary" onclick="shareMatchLink(${match.id}, '${match.submission_token}')">Compartir</button>` : ''}
                 <button class="btn btn-secondary" onclick="toggleMatchDetails(${match.id})">${match.winner ? 'Editar' : 'Cargar'}</button>
                 <button class="btn btn-danger" onclick="deleteMatch(${match.id})">Eliminar</button>
             </td>
@@ -214,18 +216,29 @@ async function renderMatchesList() {
     });
 }
 
+function shareMatchLink(matchId, token) {
+    const url = `${window.location.origin}/submit-result.html?id=${matchId}&token=${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('¡Enlace para cargar resultado copiado!');
+    }).catch(err => {
+        showToast('Error al copiar el enlace.', 'error');
+        console.error('Error al copiar:', err);
+    });
+}
+
 async function toggleMatchDetails(matchId) {
+    const allDetailsRows = document.querySelectorAll('.match-details-row');
+    allDetailsRows.forEach(row => {
+        if (row.id !== `details-${matchId}`) {
+            row.classList.add('hidden');
+        }
+    });
+
     const detailsRow = document.getElementById(`details-${matchId}`);
     const cell = detailsRow.querySelector('td');
     
     if (detailsRow.classList.contains('hidden')) {
-        // --- CORRECCIÓN CLAVE: Consulta a Supabase más explícita ---
-        const { data: match } = await supabase.from('matches').select(`
-            *, 
-            player1:player1_id(name), 
-            player2:player2_id(name)
-        `).eq('id', matchId).single();
-        
+        const { data: match } = await supabase.from('matches').select(`*, player1:player1_id(name), player2:player2_id(name)`).eq('id', matchId).single();
         cell.innerHTML = generateDetailsContent(match);
         renderSetInputs(match);
         detailsRow.classList.remove('hidden');
@@ -344,7 +357,7 @@ async function handleResultSubmit(event, matchId) {
 }
 
 async function resetMatchResult(matchId) {
-    if (!confirm("¿Seguro?")) return;
+    if (!confirm("¿Seguro? Se reseteará el resultado de este partido.")) return;
     const { error } = await supabase.from('matches').update({ winner_id: null, sets: [], bonus_loser: false }).eq('id', matchId);
     if (error) {
         showToast(`Error: ${error.message}`, 'error');
@@ -355,7 +368,7 @@ async function resetMatchResult(matchId) {
 }
 
 async function deleteMatch(id) {
-    if (!confirm('¿Seguro?')) return;
+    if (!confirm('¿Seguro que quieres eliminar este partido?')) return;
     const { error } = await supabase.from('matches').delete().eq('id', id);
     if(error) showToast(`Error: ${error.message}`, 'error');
     else {
