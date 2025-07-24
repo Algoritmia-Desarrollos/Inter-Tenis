@@ -29,26 +29,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 function renderProgram(program, container) {
     const matches = program.matches_data;
 
-    // --- LÓGICA DE AGRUPACIÓN ACTUALIZADA ---
     const groupedByVenue = matches.reduce((acc, match) => {
-        // Extrae la Sede (la primera parte antes del guion)
         const venue = match.location.split(' - ')[0].trim();
-        if (!acc[venue]) {
-            acc[venue] = {};
-        }
+        if (!acc[venue]) { acc[venue] = {}; }
         
-        // Agrupa por día dentro de cada sede
         const matchDate = new Date(match.match_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-        if (!acc[venue][matchDate]) {
-            acc[venue][matchDate] = [];
-        }
+        if (!acc[venue][matchDate]) { acc[venue][matchDate] = []; }
+
         acc[venue][matchDate].push(match);
         return acc;
     }, {});
 
     let html = `<h1 class="main-title">${program.title}</h1>`;
-
-    // Ordenar sedes (ej. Centro primero, luego Funes)
     const sortedVenues = Object.keys(groupedByVenue).sort();
 
     for (const venue of sortedVenues) {
@@ -68,24 +60,33 @@ function renderProgram(program, container) {
                         <th></th>
                         <th>Jugador 2</th>
                         <th>Categoría</th>
+                        <th>Anotar Resultado</th>
                     </tr>
                 </thead>
                 <tbody>
             `;
-            // Ordenar partidos por hora
             const dayMatches = days[day].sort((a,b) => a.match_time.localeCompare(b.match_time));
             
             dayMatches.forEach(match => {
-                // Extrae la cancha (la segunda parte después del guion)
                 const court = match.location.split(' - ')[1]?.trim() || '-';
+                
+                let anotadorHtml = '<span>No disponible</span>';
+                // --- ESTA ES LA LÓGICA CLAVE ---
+                // Verifica que el token exista en los datos del partido antes de crear el enlace.
+                if (match.submission_token) {
+                    const submitUrl = `submit-result.html?id=${match.id}&token=${match.submission_token}`;
+                    anotadorHtml = `<a href="${submitUrl}" class="btn-program" target="_blank">Anotar</a>`;
+                }
+                
                 html += `
                     <tr>
                         <td>${court}</td>
-                        <td>${match.match_time.substring(0, 5)} hs</td>
+                        <td>${match.match_time ? match.match_time.substring(0, 5) : ''} hs</td>
                         <td class="player-name">${match.player1.name}</td>
                         <td class="vs-cell">vs</td>
                         <td class="player-name">${match.player2.name}</td>
-                        <td>${match.categories.name}</td>
+                        <td>${match.categories ? match.categories.name : 'N/A'}</td>
+                        <td>${anotadorHtml}</td>
                     </tr>
                 `;
             });

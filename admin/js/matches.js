@@ -3,6 +3,7 @@ const venueData = { "Centro": 6, "Funes": 6 };
 let allPlayers = [];
 let allTournaments = [];
 let allCategories = [];
+let allTeams = [];
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,16 +15,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function fetchDataForForms() {
+    // Carga todos los datos necesarios de Supabase al iniciar la página
     const { data: playersData } = await supabase.from('players').select('*').order('name');
-    const { data: tournamentsData } = await supabase.from('tournaments').select('*').order('created_at', { ascending: false });
+    const { data: tournamentsData } = await supabase.from('tournaments').select('*, categories(name)').order('created_at', { ascending: false });
     const { data: categoriesData } = await supabase.from('categories').select('*').order('name');
+    const { data: teamsData } = await supabase.from('teams').select('*').order('name');
     
     allPlayers = playersData || [];
     allTournaments = tournamentsData || [];
     allCategories = categoriesData || [];
+    allTeams = teamsData || [];
 
     populateTournamentSelect();
     populateCategoryFilter();
+    populateTeamFilter();
 }
 
 function setupEventListeners() {
@@ -35,7 +40,15 @@ function setupEventListeners() {
     // Filtros de la lista
     document.getElementById('match-filter').addEventListener('change', renderMatchesList);
     document.getElementById('filter-by-category').addEventListener('change', renderMatchesList);
+    document.getElementById('filter-by-team').addEventListener('change', renderMatchesList);
     document.getElementById('search-player-match').addEventListener('input', renderMatchesList);
+    document.getElementById('start-date').addEventListener('change', renderMatchesList);
+    document.getElementById('end-date').addEventListener('change', renderMatchesList);
+    document.getElementById('clear-dates-btn').addEventListener('click', () => {
+        document.getElementById('start-date').value = '';
+        document.getElementById('end-date').value = '';
+        renderMatchesList();
+    });
     
     // Programa de partidos
     document.getElementById('select-all-matches').addEventListener('change', handleSelectAll);
@@ -75,11 +88,12 @@ function loadSavedFormData() {
 
 function populateTournamentSelect() {
     const select = document.getElementById('match-tournament');
-    select.innerHTML = '<option value="">Seleccione torneo</option>';
+    select.innerHTML = '<option value="">Seleccione torneo...</option>';
     allTournaments.forEach(t => {
-        select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+        const categoryName = t.categories ? t.categories.name : 'Sin Cat.';
+        select.innerHTML += `<option value="${t.id}">${t.name} (${categoryName})</option>`;
     });
-    populatePlayerSelectsForMatch(document.getElementById('match-tournament').value, 'match-player1', 'match-player2');
+    populatePlayerSelectsForMatch(select.value, 'match-player1', 'match-player2');
 }
 
 async function populatePlayerSelectsForMatch(tournamentId, p1SelectId, p2SelectId) {
@@ -91,6 +105,8 @@ async function populatePlayerSelectsForMatch(tournamentId, p1SelectId, p2SelectI
 
     p1Select.innerHTML = '<option value="">Seleccionar jugador</option>';
     p2Select.innerHTML = '<option value="">Seleccionar jugador</option>';
+    p1Select.disabled = true;
+    p2Select.disabled = true;
     
     if (!tournamentId) return;
 
@@ -101,16 +117,19 @@ async function populatePlayerSelectsForMatch(tournamentId, p1SelectId, p2SelectI
     
     const playersInTournament = (tournamentPlayers || []).map(tp => tp.players).filter(Boolean).sort((a,b) => a.name.localeCompare(b.name));
 
-    playersInTournament.forEach(p => {
-        const option = `<option value="${p.id}">${p.name}</option>`;
-        p1Select.innerHTML += option;
-        p2Select.innerHTML += option;
-    });
+    if (playersInTournament.length > 0) {
+        playersInTournament.forEach(p => {
+            const option = `<option value="${p.id}">${p.name}</option>`;
+            p1Select.innerHTML += option;
+            p2Select.innerHTML += option;
+        });
+        p1Select.disabled = false;
+        p2Select.disabled = false;
+    }
 
     if (selectedP1) p1Select.value = selectedP1;
     if (selectedP2) p2Select.value = selectedP2;
 }
-
 
 function populateCourtSelect() {
     const venueSelect = document.getElementById('match-venue');
@@ -158,7 +177,7 @@ async function handleMatchSubmit(event) {
     }]);
 
     if (error) {
-        showToast(`Error: ${error.message}`, 'error');
+        showToast(`Error al crear el partido: ${error.message}`, 'error');
     } else {
         showToast('Partido creado con éxito.', 'success');
         await renderMatchesList();
@@ -186,18 +205,31 @@ function populateCategoryFilter() {
     });
 }
 
+function populateTeamFilter() {
+    const select = document.getElementById('filter-by-team');
+    select.innerHTML = '<option value="all">Todos los equipos</option>';
+    allTeams.forEach(team => {
+        select.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+    });
+}
+
 async function renderMatchesList() {
     const tbody = document.getElementById('matches-list-tbody');
     tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text">Cargando...</td></tr>';
     
     const statusFilter = document.getElementById('match-filter').value;
     const categoryFilter = document.getElementById('filter-by-category').value;
+    const teamFilter = document.getElementById('filter-by-team').value;
     const searchTerm = document.getElementById('search-player-match').value.toLowerCase();
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
 
-    let query = supabase.from('matches').select(`*, player1:player1_id(name), player2:player2_id(name), winner:winner_id(name), tournaments(name)`);
+    let query = supabase.from('matches').select(`*, player1:player1_id(name, team_id), player2:player2_id(name, team_id), winner:winner_id(name), tournaments(name)`);
     if (statusFilter === 'pending') query = query.is('winner_id', null);
     if (statusFilter === 'completed') query = query.not('winner_id', 'is', null);
     if (categoryFilter !== 'all') query = query.eq('category_id', categoryFilter);
+    if (startDate) query = query.gte('match_date', startDate);
+    if (endDate) query = query.lte('match_date', endDate);
     
     const { data: matches, error } = await query.order('match_date', { ascending: true }).order('match_time', { ascending: true });
 
@@ -208,12 +240,14 @@ async function renderMatchesList() {
     
     const filteredMatches = matches.filter(match => {
         if (!match.player1 || !match.player2) return false;
-        return (match.player1.name.toLowerCase().includes(searchTerm) || match.player2.name.toLowerCase().includes(searchTerm));
+        const matchesSearch = (match.player1.name.toLowerCase().includes(searchTerm) || match.player2.name.toLowerCase().includes(searchTerm));
+        const matchesTeam = teamFilter === 'all' || match.player1.team_id == teamFilter || match.player2.team_id == teamFilter;
+        return matchesSearch && matchesTeam;
     });
 
     tbody.innerHTML = '';
     if (filteredMatches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text">No hay partidos que coincidan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text">No hay partidos que coincidan con los filtros.</td></tr>';
         return;
     }
 
@@ -234,7 +268,7 @@ async function renderMatchesList() {
             <td>${match.tournaments ? match.tournaments.name : 'N/A'}</td>
             <td><strong>${match.player1.name}</strong> vs <strong>${match.player2.name}</strong></td>
             <td>${match.location}</td>
-            <td class="${isPending ? 'pending-cell' : 'winner-cell'}">${isPending ? 'Pendiente' : match.winner.name}</td>
+            <td class="${isPending ? 'pending-cell' : 'winner-cell'}">${isPending ? 'Pendiente' : (match.winner ? match.winner.name : 'Completado')}</td>
         `;
         tbody.appendChild(row);
     });
@@ -277,7 +311,7 @@ async function openEditModal(matchId) {
             <div class="result-section">
                 <h4>Resultado del Partido</h4>
                 <div id="sets-container"></div>
-                <div class="set-controls"><button type="button" class="btn-icon" onclick="addSetInput(null, ${match.player1_id}, ${match.player2_id}, true)">+</button></div>
+                <div class="set-controls"><button type="button" class="btn-icon" onclick="addSetInput(null, ${match.player1_id}, ${match.player2_id})">+</button></div>
                 <div class="form-group">
                     <label>Ganador</label>
                     <select id="edit-winner">
@@ -308,7 +342,7 @@ async function openEditModal(matchId) {
     }
     editCourtSelect.value = court;
 
-    (match.sets && match.sets.length > 0 ? match.sets : [{p1:'', p2:''}]).forEach(set => addSetInput(set, match.player1_id, match.player2_id, true));
+    (match.sets && match.sets.length > 0 ? match.sets : [{p1:'', p2:''}]).forEach(set => addSetInput(set, match.player1_id, match.player2_id));
 
     document.getElementById('edit-match-form').addEventListener('submit', handleUpdateMatch);
 }
@@ -364,7 +398,7 @@ function addSetInput(set, p1Id, p2Id) {
     const p1 = allPlayers.find(p => p.id === p1Id);
     const p2 = allPlayers.find(p => p.id === p2Id);
     
-    if (!p1 || !p2) return; // Salir si los jugadores no se encuentran
+    if (!p1 || !p2) return;
 
     const setRow = document.createElement('div');
     setRow.className = 'set-input-row';

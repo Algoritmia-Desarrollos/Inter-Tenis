@@ -17,8 +17,8 @@
             <h3>Crear Nuevo Partido</h3>
             <form id="match-form" class="form-grid">
                 <div class="form-group"><label for="match-tournament">Torneo</label><select id="match-tournament" required></select></div>
-                <div class="form-group"><label for="match-player1">Jugador 1</label><select id="match-player1" required></select></div>
-                <div class="form-group"><label for="match-player2">Jugador 2</label><select id="match-player2" required></select></div>
+                <div class="form-group"><label for="match-player1">Jugador 1</label><select id="match-player1" required disabled><option>Seleccione un torneo</option></select></div>
+                <div class="form-group"><label for="match-player2">Jugador 2</label><select id="match-player2" required disabled><option>Seleccione un torneo</option></select></div>
                 <div class="form-group"><label for="match-date">Fecha</label><input type="date" id="match-date" required></div>
                 <div class="form-group"><label for="match-time">Hora</label><input type="time" id="match-time" step="900" required></div>
                 <div class="form-group"><label for="match-venue">Sede</label><select id="match-venue" required><option value="" disabled selected>Seleccione...</option><option value="Centro">Centro</option><option value="Funes">Funes</option></select></div>
@@ -33,13 +33,20 @@
                 <div class="list-filters">
                     <input type="text" id="search-player-match" placeholder="Buscar por jugador..." class="filter-input">
                     <select id="filter-by-category" class="filter-input"></select>
+                    <select id="filter-by-team" class="filter-input"></select>
                     <select id="match-filter" class="filter-input">
                         <option value="all">Todos</option>
                         <option value="pending">Pendientes</option>
                         <option value="completed">Completados</option>
                     </select>
                 </div>
-                <button id="generate-program-btn" class="btn" disabled>Crear Programa</button>
+             </div>
+             <div class="date-filter-container">
+                <label for="start-date">Filtrar por fecha:</label>
+                <input type="date" id="start-date" class="filter-input">
+                <span>-</span>
+                <input type="date" id="end-date" class="filter-input">
+                <button id="clear-dates-btn" class="btn btn-secondary">Limpiar</button>
              </div>
              <div class="table-wrapper">
                 <table class="matches-table">
@@ -57,6 +64,9 @@
                     </tbody>
                 </table>
              </div>
+             <div class="list-footer">
+                <button id="generate-program-btn" class="btn" disabled>Crear Programa de Seleccionados</button>
+             </div>
         </div>
     </main>
     <div id="toast-container"></div>
@@ -68,7 +78,7 @@
                 <button id="close-modal-btn" class="close-btn">&times;</button>
             </div>
             <div class="modal-body" id="modal-body-content">
-                </div>
+            </div>
         </div>
     </div>
     

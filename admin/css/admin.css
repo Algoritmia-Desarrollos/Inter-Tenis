@@ -994,3 +994,44 @@ input[type=number] { -moz-appearance: textfield; }
         grid-template-columns: 1fr;
     }
 }
+
+
+/* ... (todo el código anterior se mantiene igual) ... */
+
+/* --- NUEVO: ESTILOS PARA FILTROS DE FECHA --- */
+.date-filter-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--surface-light);
+    border-radius: var(--border-radius-sm);
+}
+
+.list-footer {
+    margin-top: 1.5rem;
+    text-align: right;
+}
+
+/* --- ESTILOS TABLA DE PARTIDOS --- */
+/* ... (estilos de la tabla se mantienen) ... */
+
+/* --- AJUSTE: ESTILOS PARA LA FLECHA DESPLEGABLE --- */
+.expandable-row {
+    position: relative;
+    cursor: pointer;
+}
+
+.expandable-row::after {
+    content: '›';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-size: 1.8rem;
+    color: var(--text-secondary-color);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* ... (el resto de los estilos del modal, etc., se mantienen igual) ... */

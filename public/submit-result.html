@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cargar Resultado - Inter Ténis</title>
-    <link rel="stylesheet" href="/admin/css/admin.css">
-    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="public.css">
 </head>
 <body>
     <header class="header">
@@ -13,13 +12,18 @@
             <a href="index.html" class="logo">Inter Ténis</a>
         </nav>
     </header>
-    <main id="main-content" class="container">
-        <div class="card" style="text-align: center;">Cargando información del partido...</div>
+
+    <main id="main-content" class="container" style="padding-top: 2rem;">
+        <div class="card" style="text-align: center;">
+            <h2>Cargando información del partido...</h2>
+        </div>
     </main>
+
     <footer class="footer">
         <p>&copy; 2024 Inter Ténis. Todos los derechos reservados.</p>
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/public/submit-result.js"></script>
+    <script src="submit-result.js"></script>
 </body>
 </html>

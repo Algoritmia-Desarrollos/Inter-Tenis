@@ -1,10 +1,14 @@
-// --- Conexión a Supabase para la página pública ---
+// --- Conexión a Supabase ---
 const SUPABASE_URL = 'https://vulzfuwesigberabbbhx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bHpmdXdlc2lnYmVyYWJiYmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyMTExOTEsImV4cCI6MjA2ODc4NzE5MX0.5ndfB7FxvW6B4UVny198BiVlw-1BhJ98Xg_iyAEiFQw';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const mainContent = document.getElementById('main-content');
 let currentMatch = null;
+let submissionState = {
+    winnerId: null,
+    sets: []
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
@@ -12,8 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const token = params.get('token');
 
     if (!matchId || !token) {
-        mainContent.innerHTML = '<div class="card"><h2>Enlace no válido</h2><p>El enlace para cargar el resultado es incorrecto o ha expirado.</p></div>';
-        return;
+        return renderError("Enlace no válido", "El enlace para cargar el resultado es incorrecto o ha expirado.");
     }
 
     const { data: match, error } = await supabase
@@ -24,113 +27,175 @@ document.addEventListener('DOMContentLoaded', async () => {
         .single();
 
     if (error || !match) {
-        mainContent.innerHTML = '<div class="card"><h2>Enlace no válido o partido no encontrado</h2><p>Verifica que el enlace sea correcto.</p></div>';
-        return;
+        return renderError("Enlace no válido o partido no encontrado", "Verifica que el enlace sea correcto.");
     }
     
     currentMatch = match;
-    renderResultForm(match);
+    
+    if (match.winner_id) {
+        submissionState.winnerId = match.winner_id;
+        submissionState.sets = match.sets;
+        renderConfirmationStep(true);
+    } else {
+        renderWinnerStep();
+    }
 });
 
-function renderResultForm(match) {
-    const title = match.winner_id ? 'Editar Resultado' : 'Cargar Resultado';
+// --- PASO 1: Renderizar Selección de Ganador ---
+function renderWinnerStep() {
+    submissionState.winnerId = null;
+    submissionState.sets = [];
     mainContent.innerHTML = `
-        <div class="card">
-            <h1 class="main-title">${title}</h1>
-            <p style="text-align: center; color: var(--text-secondary-color); margin-top: -2rem; margin-bottom: 2rem;">
-                ${match.player1.name} vs ${match.player2.name}
-            </p>
-            <form id="result-form">
-                <div id="sets-container" class="sets-container"></div>
-                <div class="set-controls">
-                    <button type="button" class="btn-icon" onclick="addSetInput()">+</button>
-                </div>
-                <hr style="border-color: var(--border-color); margin: 1rem 0;">
-                <div class="form-group">
-                    <label>¿Quién ganó el partido?</label>
-                    <select id="winner-select" class="filter-input" required>
-                        <option value="" disabled selected>Selecciona al ganador...</option>
-                        <option value="${match.player1.id}">${match.player1.name}</option>
-                        <option value="${match.player2.id}">${match.player2.name}</option>
-                    </select>
-                </div>
-                <div class="form-group-full" style="margin-top: 2rem;">
-                    <button type="submit" class="btn">Enviar Resultado</button>
-                </div>
-            </form>
+        <div class="card interactive-card animate-fade-in">
+            <div class="step-header">
+                <span class="step-indicator">Paso 1 de 3</span>
+                <h2>¿Quién ganó el partido?</h2>
+                <p>${currentMatch.player1.name} vs ${currentMatch.player2.name}</p>
+            </div>
+            <div class="winner-selection">
+                <button class="player-button" onclick="selectWinner(${currentMatch.player1.id})">${currentMatch.player1.name}</button>
+                <button class="player-button" onclick="selectWinner(${currentMatch.player2.id})">${currentMatch.player2.name}</button>
+            </div>
         </div>
     `;
-    renderSetInputs(match);
-    document.getElementById('result-form').addEventListener('submit', handleResultSubmit);
 }
 
-function renderSetInputs(match) {
-    const container = document.getElementById('sets-container');
-    container.innerHTML = '';
-    const sets = match.sets && match.sets.length > 0 ? match.sets : [{ p1: '', p2: '' }];
-
-    sets.forEach((set, index) => {
-        addSetInput(set.p1, set.p2);
-    });
-
-    if (match.winner_id) {
-        document.getElementById('winner-select').value = match.winner_id;
-    }
+function selectWinner(winnerId) {
+    submissionState.winnerId = winnerId;
+    renderSetsStep();
 }
 
-function addSetInput(p1_score = '', p2_score = '') {
-    const container = document.getElementById('sets-container');
-    if (container.children.length >= 3) {
-        alert('Máximo 3 sets por partido.');
-        return;
-    }
-    const setCount = container.children.length + 1;
-    const setRow = document.createElement('div');
-    setRow.className = 'set-input-row';
-    setRow.innerHTML = `
-        <span>Set ${setCount}:</span>
-        <label>${currentMatch.player1.name}</label>
-        <input type="number" min="0" max="10" placeholder="Games" value="${p1_score}" data-player-id="${currentMatch.player1.id}" required>
-        <span>-</span>
-        <input type="number" min="0" max="10" placeholder="Games" value="${p2_score}" data-player-id="${currentMatch.player2.id}" required>
-        <label>${currentMatch.player2.name}</label>
-        ${setCount > 1 ? `<button type="button" class="btn-icon remove" onclick="this.parentElement.remove()">−</button>` : ''}
+// --- PASO 2: Renderizar Carga de Sets (Lógica Inteligente) ---
+function renderSetsStep() {
+    const currentSetNumber = submissionState.sets.length + 1;
+
+    mainContent.innerHTML = `
+        <div class="card interactive-card animate-fade-in">
+            <div class="step-header">
+                <span class="step-indicator">Paso 2 de 3</span>
+                <h2>Resultado del Set ${currentSetNumber}</h2>
+            </div>
+            <div class="set-input-grid">
+                <label>${currentMatch.player1.name}</label>
+                <select id="p1-score">${createScoreOptions()}</select>
+                <span>-</span>
+                <select id="p2-score">${createScoreOptions()}</select>
+                <label>${currentMatch.player2.name}</label>
+            </div>
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="goBackToWinnerSelection()">← Volver</button>
+                <button class="btn" onclick="collectSet()">Siguiente &rarr;</button>
+            </div>
+        </div>
     `;
-    container.appendChild(setRow);
+    document.getElementById('p1-score').focus();
 }
 
-async function handleResultSubmit(event) {
-    event.preventDefault();
-    const winnerId = parseInt(document.getElementById('winner-select').value);
-    const sets = [];
-    const setRows = document.querySelectorAll('.set-input-row');
-    
-    for (const row of setRows) {
-        const inputs = row.querySelectorAll('input[type="number"]');
-        const games1 = parseInt(inputs[0].value);
-        const games2 = parseInt(inputs[1].value);
-
-        if (isNaN(games1) || isNaN(games2)) {
-            alert('Todos los campos de games son obligatorios.');
-            return;
-        }
-        sets.push({ p1: games1, p2: games2 });
+function createScoreOptions() {
+    let options = '';
+    for (let i = 0; i <= 6; i++) {
+        options += `<option value="${i}">${i}</option>`;
     }
+    return options;
+}
 
-    if (sets.length === 0) {
-        alert('Debe haber al menos un set.');
+function goBackToWinnerSelection() {
+    if (submissionState.sets.length > 0) {
+        submissionState.sets.pop();
+        renderSetsStep();
+    } else {
+        renderWinnerStep();
+    }
+}
+
+function collectSet() {
+    const p1Score = parseInt(document.getElementById('p1-score').value);
+    const p2Score = parseInt(document.getElementById('p2-score').value);
+
+    // Validaciones
+    if (p1Score === p2Score && p1Score >= 6) {
+        alert("Resultado de set inválido. En un tie-break, los marcadores no pueden ser iguales.");
         return;
     }
+    if (Math.max(p1Score, p2Score) < 6 || Math.abs(p1Score - p2Score) < 2) {
+        if (!confirm("El resultado del set parece inusual. ¿Estás seguro de que es correcto?")) return;
+    }
+
+    submissionState.sets.push({ p1: p1Score, p2: p2Score });
+
+    // --- LÓGICA INTELIGENTE ---
+    if (submissionState.sets.length >= 2) {
+        let p1SetsWon = 0;
+        let p2SetsWon = 0;
+        submissionState.sets.forEach(set => {
+            if (set.p1 > set.p2) p1SetsWon++;
+            else p2SetsWon++;
+        });
+
+        // Si alguien ganó 2 sets, o si ya se jugaron 3, termina.
+        if (p1SetsWon === 2 || p2SetsWon === 2 || submissionState.sets.length === 3) {
+            renderConfirmationStep();
+        } else {
+            renderSetsStep(); // Pide el siguiente set
+        }
+    } else {
+        renderSetsStep(); // Pide el siguiente set
+    }
+}
+
+// --- PASO 3: Renderizar Confirmación ---
+function renderConfirmationStep(isEditing = false) {
+    const winnerName = submissionState.winnerId == currentMatch.player1.id ? currentMatch.player1.name : currentMatch.player2.name;
+    const setsHtml = submissionState.sets.map(set => `<span>${set.p1} - ${set.p2}</span>`).join(' , ');
+
+    mainContent.innerHTML = `
+        <div class="card interactive-card animate-fade-in">
+            <div class="step-header">
+                <span class="step-indicator">Paso 3 de 3</span>
+                <h2>Revisar y Confirmar</h2>
+            </div>
+            <div class="summary">
+                <div class="summary-item">
+                    <span>Ganador Seleccionado:</span>
+                    <strong>${winnerName}</strong>
+                </div>
+                <div class="summary-item">
+                    <span>Resultado Final (Sets):</span>
+                    <strong>${setsHtml}</strong>
+                </div>
+            </div>
+            <div class="step-actions">
+                <button class="btn btn-secondary" onclick="goBackToWinnerSelection()">← Corregir Sets</button>
+                <button class="btn" onclick="handleResultSubmit()">Confirmar y Enviar</button>
+            </div>
+        </div>
+    `;
+}
+
+// --- Lógica Final: Enviar a Supabase ---
+async function handleResultSubmit() {
+    mainContent.innerHTML = `<div class="card"><p class="placeholder-text">Enviando resultado...</p></div>`;
 
     const { error } = await supabase.from('matches').update({ 
-        winner_id: winnerId, 
-        sets: sets,
-        bonus_loser: sets.length === 3 
+        winner_id: submissionState.winnerId, 
+        sets: submissionState.sets,
+        bonus_loser: submissionState.sets.length === 3 
     }).eq('id', currentMatch.id);
 
     if (error) {
-        mainContent.innerHTML = `<div class="card"><h2>Error</h2><p>No se pudo guardar el resultado. Por favor, contacta al administrador.</p><p><small>${error.message}</small></p></div>`;
+        renderError("Error al guardar", "No se pudo guardar el resultado.", error.message);
     } else {
-        mainContent.innerHTML = '<div class="card"><h2>¡Gracias!</h2><p>El resultado ha sido enviado correctamente.</p></div>';
+        // --- AQUÍ ESTÁ LA MODIFICACIÓN ---
+        mainContent.innerHTML = `
+            <div class="card interactive-card animate-fade-in" style="text-align: center;">
+                <h2>¡Gracias!</h2>
+                <p>El resultado ha sido enviado correctamente.</p>
+                <a href="http://127.0.0.1:5500/" class="btn" style="margin-top: 1rem;">Volver a la Página Principal</a>
+            </div>`;
     }
+}
+
+// --- Funciones de Utilidad ---
+function renderError(title, message, details = '') {
+    mainContent.innerHTML = `<div class="card"><h2>${title}</h2><p>${message}</p>${details ? `<p><small>${details}</small></p>` : ''}</div>`;
 }
