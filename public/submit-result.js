@@ -1,4 +1,4 @@
-// --- Conexión a Supabase (puedes usar las mismas credenciales públicas) ---
+// --- Conexión a Supabase para la página pública ---
 const SUPABASE_URL = 'https://vulzfuwesigberabbbhx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1bHpmdXdlc2lnYmVyYWJiYmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyMTExOTEsImV4cCI6MjA2ODc4NzE5MX0.5ndfB7FxvW6B4UVny198BiVlw-1BhJ98Xg_iyAEiFQw';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -24,23 +24,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         .single();
 
     if (error || !match) {
-        mainContent.innerHTML = '<div class="card"><h2>Enlace no válido</h2><p>El enlace para cargar el resultado es incorrecto o ha expirado.</p></div>';
+        mainContent.innerHTML = '<div class="card"><h2>Enlace no válido o partido no encontrado</h2><p>Verifica que el enlace sea correcto.</p></div>';
         return;
     }
     
-    if (match.winner_id) {
-        mainContent.innerHTML = '<div class="card"><h2>Resultado ya cargado</h2><p>El resultado para este partido ya fue enviado. ¡Gracias!</p></div>';
-        return;
-    }
-
+    // Permitir editar si ya hay un ganador
     currentMatch = match;
     renderResultForm(match);
 });
 
 function renderResultForm(match) {
+    const title = match.winner_id ? 'Editar Resultado' : 'Cargar Resultado';
     mainContent.innerHTML = `
         <div class="card">
-            <h1 class="main-title">Cargar Resultado</h1>
+            <h1 class="main-title">${title}</h1>
             <p style="text-align: center; color: var(--text-secondary-color); margin-top: -2rem; margin-bottom: 2rem;">
                 ${match.player1.name} vs ${match.player2.name}
             </p>
@@ -64,9 +61,33 @@ function renderResultForm(match) {
             </form>
         </div>
     `;
-    addSetInput(); // Añadir el primer set por defecto
+    renderSetInputs(match);
     document.getElementById('result-form').addEventListener('submit', handleResultSubmit);
 }
+
+function renderSetInputs(match) {
+    const container = document.getElementById('sets-container');
+    container.innerHTML = '';
+    const sets = match.sets && match.sets.length > 0 ? match.sets : [{ p1: '', p2: '' }];
+
+    sets.forEach((set, index) => {
+        const setRow = document.createElement('div');
+        setRow.className = 'set-input-row';
+        setRow.innerHTML = `
+            <span>Set ${index + 1}:</span>
+            <input type="number" min="0" max="10" placeholder="Games" value="${set.p1 || ''}" required>
+            <span>-</span>
+            <input type="number" min="0" max="10" placeholder="Games" value="${set.p2 || ''}" required>
+            ${index > 0 ? `<button type="button" class="btn-icon remove" onclick="this.parentElement.remove()">−</button>` : ''}
+        `;
+        container.appendChild(setRow);
+    });
+
+    if (match.winner_id) {
+        document.getElementById('winner-select').value = match.winner_id;
+    }
+}
+
 
 function addSetInput() {
     const container = document.getElementById('sets-container');
@@ -92,18 +113,19 @@ async function handleResultSubmit(event) {
     const winnerId = parseInt(document.getElementById('winner-select').value);
     const sets = [];
     const setRows = document.querySelectorAll('.set-input-row');
+    
     for (const row of setRows) {
         const inputs = row.querySelectorAll('input[type="number"]');
-        const p1Games = parseInt(inputs[0].value);
-        const p2Games = parseInt(inputs[1].value);
-        if (isNaN(p1Games) || isNaN(p2Games)) {
+        const games1 = parseInt(inputs[0].value);
+        const games2 = parseInt(inputs[1].value);
+        if (isNaN(games1) || isNaN(games2)) {
             alert('Todos los campos de games son obligatorios.');
             return;
         }
-        // Asignar games según el ganador seleccionado
+        // Asignar games al jugador correcto (p1 vs p2)
         sets.push({
-            p1: winnerId === currentMatch.player1_id ? Math.max(p1Games, p2Games) : Math.min(p1Games, p2Games),
-            p2: winnerId === currentMatch.player2_id ? Math.max(p1Games, p2Games) : Math.min(p1Games, p2Games)
+            p1: winnerId === currentMatch.player1_id ? Math.max(games1, games2) : Math.min(games1, games2),
+            p2: winnerId === currentMatch.player2_id ? Math.max(games1, games2) : Math.min(games1, games2)
         });
     }
 

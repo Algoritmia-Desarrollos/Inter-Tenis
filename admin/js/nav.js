@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    /*
     // Proteger la página
     const { data: { session } } = await supabase.auth.getSession();
     if (!session && !window.location.pathname.endsWith('index.html')) {
         window.location.href = 'index.html';
         return;
     }
-    */
 
     const header = document.getElementById('main-header');
     if (!header) return;
@@ -50,9 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // --- CORREGIDO: Busca directamente en Supabase ---
         const { data: players } = await supabase.from('players').select('id, name').ilike('name', `%${query}%`);
-        
         if (players && players.length > 0) {
             players.forEach(player => {
                 const item = document.createElement('a');

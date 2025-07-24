@@ -177,20 +177,22 @@ async function handleSaveChanges() {
     let currentTournamentId = tournament.id;
     
     if (tournament.id) { // Editando
-        await supabase.from('tournaments').update(tournamentData).eq('id', tournament.id);
-        await supabase.from('tournament_players').delete().eq('tournament_id', tournament.id);
+        const { error } = await supabase.from('tournaments').update(tournamentData).eq('id', tournament.id);
+        if (error) return showToast(`Error al guardar: ${error.message}`, 'error');
     } else { // Creando
-        const { data: newTournament } = await supabase.from('tournaments').insert(tournamentData).select().single();
+        const { data: newTournament, error } = await supabase.from('tournaments').insert(tournamentData).select().single();
+        if (error || !newTournament) return showToast(`Error al crear: ${error ? error.message : 'No se pudo crear el torneo.'}`, 'error');
         currentTournamentId = newTournament.id;
     }
     
+    await supabase.from('tournament_players').delete().eq('tournament_id', currentTournamentId);
     const playersToInsert = enrolledPlayers.map(p => ({ tournament_id: currentTournamentId, player_id: p.id }));
     const { error: insertError } = await supabase.from('tournament_players').insert(playersToInsert);
-
+    
     if(insertError) return showToast(`Error al inscribir jugadores: ${insertError.message}`, 'error');
     
     showToast('Torneo guardado con éxito.', 'success');
-    await renderTournamentsList(currentTournamentId);
+    await loadTournamentForEditing(currentTournamentId); // Recargar datos editados
 }
 
 async function deleteTournament(id) {

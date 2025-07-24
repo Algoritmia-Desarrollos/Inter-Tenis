@@ -1,20 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Redirigir directamente al dashboard de torneos
-    window.location.href = 'tournaments.html';
-
-    /*
-    const loginForm = document.getElementById('login-form');
-    const signupButton = document.getElementById('signup-btn');
-    const errorMessage = document.getElementById('error-message');
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-
     // Redirigir si ya hay una sesión activa
     supabase.auth.onAuthStateChange((event, session) => {
         if (session) {
             window.location.href = 'tournaments.html'; // CORREGIDO
         }
     });
+
+    const loginForm = document.getElementById('login-form');
+    const signupButton = document.getElementById('signup-btn');
+    const errorMessage = document.getElementById('error-message');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
 
     // Manejar el inicio de sesión
     loginForm.addEventListener('submit', async (event) => {
@@ -45,5 +41,4 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage.style.color = 'var(--success-color)';
         }
     });
-    */
 });
