@@ -39,8 +39,36 @@ async function renderProgramsList() {
             <td>${creationDate}</td>
             <td class="actions-cell">
                 <a href="${programUrl}" class="btn" target="_blank">Ver Programa</a>
+                <button class="btn btn-danger" onclick="deleteProgram(${program.id}, '${program.title}')">Eliminar</button>
             </td>
         `;
         tbody.appendChild(row);
     });
+}
+
+async function deleteProgram(programId, programTitle) {
+    // Confirmar eliminación
+    if (!confirm(`¿Estás seguro de que quieres eliminar el programa "${programTitle}"?\n\nEsta acción no se puede deshacer y el enlace público dejará de funcionar.`)) {
+        return;
+    }
+
+    // Mostrar mensaje de carga
+    showToast('Eliminando programa...', 'info');
+
+    try {
+        const { error } = await supabase
+            .from('programs')
+            .delete()
+            .eq('id', programId);
+
+        if (error) {
+            showToast(`Error al eliminar el programa: ${error.message}`, 'error');
+        } else {
+            showToast('Programa eliminado con éxito.', 'success');
+            // Recargar la lista de programas
+            await renderProgramsList();
+        }
+    } catch (error) {
+        showToast(`Error inesperado: ${error.message}`, 'error');
+    }
 }
