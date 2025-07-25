@@ -1,4 +1,4 @@
-/* === INTER-TENIS PÚBLICO | ESTILOS COMPLETOS Y UNIFICADOS === */
+/* === INTER-TENIS PÚBLICO | ESTILOS COMPLETOS Y CORREGIDOS === */
 @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap');
 
 /* --- PALETA DE COLORES Y VARIABLES GLOBALES --- */
@@ -11,7 +11,8 @@
   --text-color: #e1e1e1; 
   --text-secondary-color: #8e8e93; 
   --border-color: #3a3a3c;
-  --gold-color: #ffcc00; 
+  --gold-color: #ffcc00;
+  --success-color: #30d158; /* Color para confirmaciones */
   --font-body: 'Poppins', sans-serif; 
   --font-heading: 'Lora', serif;
   --border-radius-sm: 6px;
@@ -67,10 +68,15 @@ th.divider-left, td.divider-left { border-left: 1px solid #4a4a4e; }
 .program-table { width: 100%; border-collapse: collapse; }
 .program-table th { text-align: center; padding: 1rem; border-bottom: 2px solid var(--primary-color); }
 .program-table td { text-align: center; padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); }
-.program-table .player-name { font-weight: 600; font-size: 1.1rem; }
+.program-table .player-name { font-weight: 600; font-size: 1.1rem; transition: color 0.2s ease; }
 .program-table .vs-cell { font-weight: 700; color: var(--primary-color); }
 .btn-program { display: inline-block; padding: 0.5rem 1rem; background-color: var(--primary-color); color: white; text-decoration: none; border-radius: var(--border-radius-sm); font-weight: 500; transition: var(--transition-fast); }
 .btn-program:hover { background-color: var(--primary-hover); transform: scale(1.05); }
+/* --- NUEVOS ESTILOS PARA CONFIRMACIONES --- */
+.player-name.player-confirmed { color: var(--success-color); }
+.player-name.player-unconfirmed { color: var(--text-color); }
+.confirmation-status.status-all-confirmed { color: var(--success-color); font-weight: 700; }
+.confirmation-status.status-pending { color: var(--text-secondary-color); }
 
 /* --- BOTONES (ESTILOS UNIFICADOS PARA submit-result) --- */
 .btn { display: inline-flex; justify-content: center; align-items: center; padding: 0.75rem 1.5rem; background-color: var(--primary-color); color: white; border: none; border-radius: var(--border-radius-sm); font-size: 1rem; font-weight: 500; font-family: var(--font-body); text-decoration: none; cursor: pointer; transition: all 0.2s ease; }

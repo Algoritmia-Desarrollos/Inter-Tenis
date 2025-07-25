@@ -24,7 +24,11 @@
                 <table class="styled-table">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="select-all-programs"></th>
                             <th>Título del Programa</th>
+                            <th>Jugadores</th>
+                            <th>Asistencia</th>
+                            <th>Período del Programa</th>
                             <th>Fecha de Creación</th>
                             <th>Acciones</th>
                         </tr>
@@ -32,6 +36,11 @@
                     <tbody id="programs-list-tbody">
                         </tbody>
                 </table>
+            </div>
+            <div class="list-footer">
+                <button id="delete-selected-btn" class="btn btn-danger" style="display: none;">
+                    Eliminar Seleccionados
+                </button>
             </div>
         </div>
     </main>

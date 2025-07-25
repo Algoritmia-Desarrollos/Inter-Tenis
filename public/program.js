@@ -12,23 +12,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const { data: program, error } = await supabase
+    // 1. Obtener el programa y los IDs de los partidos
+    const { data: program, error: programError } = await supabase
         .from('programs')
-        .select('*')
+        .select('title, match_ids')
         .eq('slug', slug)
         .single();
 
-    if (error || !program) {
+    if (programError || !program) {
         container.innerHTML = `<h1>Programa no encontrado</h1><p>No se encontró un programa con el slug: <strong>${slug}</strong></p>`;
         return;
     }
 
-    renderProgram(program, container);
+    if (!program.match_ids || program.match_ids.length === 0) {
+        container.innerHTML = `<h1>Programa Vacío</h1><p>Este programa no tiene partidos asociados.</p>`;
+        return;
+    }
+
+    // 2. Obtener los datos actualizados de los partidos usando los IDs
+    const { data: matchesData, error: matchesError } = await supabase
+        .from('matches')
+        .select(`*, player1:player1_id(name), player2:player2_id(name)`)
+        .in('id', program.match_ids);
+
+    if (matchesError) {
+        container.innerHTML = `<h1>Error</h1><p>No se pudieron cargar los datos de los partidos.</p>`;
+        return;
+    }
+
+    renderProgram(program.title, matchesData, container);
 });
 
-function renderProgram(program, container) {
-    const matches = program.matches_data;
-
+function renderProgram(title, matches, container) {
     const groupedByVenue = matches.reduce((acc, match) => {
         const venue = match.location.split(' - ')[0].trim();
         if (!acc[venue]) { acc[venue] = {}; }
@@ -40,7 +55,7 @@ function renderProgram(program, container) {
         return acc;
     }, {});
 
-    let html = `<h1 class="main-title">${program.title}</h1>`;
+    let html = `<h1 class="main-title">${title}</h1>`;
     const sortedVenues = Object.keys(groupedByVenue).sort();
 
     for (const venue of sortedVenues) {
@@ -59,7 +74,6 @@ function renderProgram(program, container) {
                         <th>Jugador 1</th>
                         <th></th>
                         <th>Jugador 2</th>
-                        <th>Categoría</th>
                         <th>Anotar Resultado</th>
                     </tr>
                 </thead>
@@ -86,7 +100,6 @@ function renderProgram(program, container) {
                         <td class="player-name ${p1Class}">${match.player1.name}</td>
                         <td class="vs-cell">vs</td>
                         <td class="player-name ${p2Class}">${match.player2.name}</td>
-                        <td>${match.categories ? match.categories.name : 'N/A'}</td>
                         <td>${anotadorHtml}</td>
                     </tr>
                 `;

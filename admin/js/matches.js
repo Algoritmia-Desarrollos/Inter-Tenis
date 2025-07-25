@@ -552,13 +552,8 @@ async function handleGenerateProgram() {
     const { data: existingProgram } = await supabase.from('programs').select('id').eq('slug', slug).single();
     if (existingProgram) return showToast('Ya existe un programa con un título similar. Elige otro.', 'error');
 
-    const { data: matchesData, error: matchesError } = await supabase.from('matches')
-        .select(`*, submission_token, p1_confirmed, p2_confirmed, player1:player1_id(name), player2:player2_id(name), tournaments(name), categories(name)`)
-        .in('id', selectedIds);
-
-    if (matchesError) return showToast(`Error al obtener datos: ${matchesError.message}`, 'error');
-    
-    const { data: newProgram, error: insertError } = await supabase.from('programs').insert({ title, slug, matches_data: matchesData }).select();
+    // Ahora solo guardamos los IDs de los partidos
+    const { data: newProgram, error: insertError } = await supabase.from('programs').insert({ title, slug, match_ids: selectedIds }).select();
 
     if (insertError) return showToast(`Error al guardar el programa: ${insertError.message}`, 'error');
     if (!newProgram || newProgram.length === 0) return showToast('Hubo un problema desconocido al crear el programa.', 'error');
