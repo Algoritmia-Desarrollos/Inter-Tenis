@@ -74,12 +74,109 @@ async function handleGenerateProgram() {
         return showToast(`Error al crear el programa: ${error.message}`, 'error');
     }
     
-    showToast('Programa creado con éxito. Redirigiendo...', 'success');
+    const programUrl = `${window.location.origin}/public/program.html?slug=${slug}`;
+    showToast('Programa creado con éxito.', 'success');
     
-    // Redirige a la página de programas después de un breve momento para que el usuario vea el mensaje
-    setTimeout(() => {
-        window.location.href = 'programs.html';
-    }, 1500);
+    const toastContainer = document.getElementById('toast-container');
+    const linkToast = document.createElement('div');
+    linkToast.className = 'toast success';
+    linkToast.innerHTML = `<div><p style="margin:0;">¡Programa Creado!</p><a href="${programUrl}" target="_blank" style="color:white;text-decoration:underline;">Ver programa</a></div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;position:absolute;top:10px;right:10px;">&times;</button>`;
+    toastContainer.appendChild(linkToast);
+}
+
+async function handleGeneratePdf() {
+    if (selectedMatchIds.size === 0) return showToast('No hay partidos seleccionados.', 'error');
+    showToast('Generando PDF...');
+
+    const selectedMatches = [...selectedMatchIds].map(id => allMatchesData.find(m => m.id === id)).filter(Boolean);
+    selectedMatches.sort((a, b) => new Date(a.match_date) - new Date(b.match_date) || a.match_time.localeCompare(b.match_time));
+
+    const groupedByDateAndSede = selectedMatches.reduce((acc, match) => {
+        const date = new Date(match.match_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const sede = match.location?.split(' - ')[0] || 'N/A';
+        const key = `${sede.toUpperCase()} | ${date}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(match);
+        return acc;
+    }, {});
+
+    let pdfHtml = `<style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .pdf-page { background-color: #1c1c1c; padding: 10mm; width: 297mm; min-height: 210mm; box-sizing: border-box; }
+        .day-block { margin-bottom: 10px; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; background-color: #f3ca3e; color: #1c1c1c; padding: 6px 12px; font-size: 20px; font-weight: bold; }
+        .match-table { width: 100%; border-collapse: collapse; color: #e0e0e0; font-size: 13px; }
+        .match-table td { padding: 10px 6px; border-bottom: 1px solid #444; vertical-align: middle; text-align: center; }
+        .cancha { font-weight: bold; background-color: #f3ca3e; color: #1c1c1c; text-align: center; border-radius: 4px; padding: 4px 8px; display: inline-block; font-size: 14px; }
+        .player { text-align: right; }
+        .winner { font-weight: bold; color: #f3ca3e; }
+        .score-box { text-align: center; font-weight: bold; color: #fff; border-radius: 4px; padding: 6px 10px; min-width: 20px; display: inline-block; background-color: #3a3a3c;}
+        .score-box.winner-box { background-color: #f3ca3e; color: #1c1c1c; }
+        .score-box.bonus-box { background-color: #8c5c02; }
+        .sets { text-align: center; font-weight: 500; }
+        .category { text-align: left; font-weight: bold; color: #e85d04; }
+        .team-logo { width: 20px; height: 20px; border-radius: 50%; vertical-align: middle; margin-left: 8px; background-color: #333; }
+    </style>
+    <div class="pdf-page">`;
+
+    for (const groupKey in groupedByDateAndSede) {
+        const [sede, fecha] = groupKey.split(' | ');
+        pdfHtml += `<div class="day-block">
+            <div class="header-row"><span>${sede}</span><span>${fecha}</span></div>
+            <table class="match-table"><tbody>`;
+        
+        groupedByDateAndSede[groupKey].forEach(match => {
+            const p1 = allPlayers.find(p => p.id === match.player1_id);
+            const p2 = allPlayers.find(p => p.id === match.player2_id);
+            const team1 = p1 ? allTeams.find(t => t.id === p1.team_id) : null;
+            const team2 = p2 ? allTeams.find(t => t.id === p2.team_id) : null;
+            let p1Points = 0, p2Points = 0;
+            if (match.winner_id) {
+                p1Points = (match.winner_id === match.player1_id) ? 2 : (match.bonus_loser ? 1 : 0);
+                p2Points = (match.winner_id === match.player2_id) ? 2 : (match.bonus_loser ? 1 : 0);
+            }
+            const p1PointClass = p1Points === 2 ? 'winner-box' : p1Points === 1 ? 'bonus-box' : '';
+            const p2PointClass = p2Points === 2 ? 'winner-box' : p2Points === 1 ? 'bonus-box' : '';
+            const setsString = match.winner_id ? (match.sets || []).map(s => `${s.p1}/${s.p2}`).join(' ') : 'vs';
+
+            pdfHtml += `
+                <tr>
+                    <td width="5%"><span class="cancha">${match.location?.split(' - ')[1].replace('Cancha ','') || ''}</span></td>
+                    <td width="8%">${match.match_time?.substring(0, 5) || ''} hs</td>
+                    <td width="22%" class="player ${match.winner_id === p1.id ? 'winner' : ''}">${p1.name} ${team1?.image_url ? `<img src="${team1.image_url}" class="team-logo">` : ''}</td>
+                    <td width="5%"><span class="score-box ${p1PointClass}">${p1Points}</span></td>
+                    <td width="15%" class="sets">${setsString}</td>
+                    <td width="5%"><span class="score-box ${p2PointClass}">${p2Points}</span></td>
+                    <td width="22%" class="player ${match.winner_id === p2.id ? 'winner' : ''}">${p2.name} ${team2?.image_url ? `<img src="${team2.image_url}" class="team-logo">` : ''}</td>
+                    <td width="5%" class="category">${allCategories.find(c => c.id === match.category_id)?.name || ''}</td>
+                </tr>`;
+        });
+        pdfHtml += `</tbody></table></div>`;
+    }
+    pdfHtml += `</div>`;
+    
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.innerHTML = pdfHtml;
+    document.body.appendChild(element);
+
+    const imageLoadPromises = Array.from(element.getElementsByTagName('img')).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => { img.onload = img.onerror = resolve; });
+    });
+
+    await Promise.all(imageLoadPromises);
+
+    html2pdf().from(element).set({
+        margin: 0,
+        filename: 'programa_partidos.pdf',
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    }).save().then(() => {
+        document.body.removeChild(element);
+    });
 }
 
 // SECCIÓN: RENDERIZADO Y FILTRADO
@@ -189,22 +286,16 @@ function toggleEditForm(matchId) {
         currentEditRow = null;
         return;
     }
-    
     if (currentEditRow) {
         currentEditRow.remove();
     }
-
     const matchRow = document.querySelector(`tr[data-match-id='${matchId}']`);
     if (!matchRow) return;
-
     const match = allMatchesData.find(m => m.id === matchId);
-    
     currentEditRow = document.createElement('tr');
     currentEditRow.className = 'match-details-row';
     currentEditRow.dataset.matchId = matchId;
-
     const [venue, court] = match.location?.split(' - ') || ['', ''];
-
     let formHtml = `
         <td colspan="10" class="details-content">
             <form id="inline-edit-form-${matchId}" onsubmit="handleUpdateMatch(event, ${matchId})">
@@ -232,15 +323,12 @@ function toggleEditForm(matchId) {
             </form>
         </td>`;
     currentEditRow.innerHTML = formHtml;
-    
     matchRow.after(currentEditRow);
-
     const form = document.getElementById(`inline-edit-form-${matchId}`);
     form.elements.venue.value = venue;
     populateCourtSelect(form.elements.venue, form.elements.court, venue);
     form.elements.court.value = court;
     form.elements.winner_id.value = match.winner_id || "";
-
     if (match.sets) match.sets.forEach(set => addSetInput(set, match.player1_id, match.player2_id, matchId));
 }
 
@@ -248,12 +336,10 @@ async function handleUpdateMatch(event, matchId) {
     event.preventDefault();
     showToast('Guardando...');
     const form = event.target;
-    
     const sets = Array.from(form.querySelectorAll('.set-input-row')).map(row => ({
         p1: parseInt(row.querySelector('input[data-player="p1"]').value),
         p2: parseInt(row.querySelector('input[data-player="p2"]').value)
     })).filter(set => !isNaN(set.p1) && !isNaN(set.p2));
-
     const updateData = {
         match_date: form.elements.match_date.value,
         match_time: form.elements.match_time.value,
@@ -262,19 +348,15 @@ async function handleUpdateMatch(event, matchId) {
         sets: sets.length > 0 ? sets : null,
         bonus_loser: sets.length === 3
     };
-
     const { data: updatedMatch, error } = await supabase.from('matches').update(updateData).eq('id', matchId).select(`*, player1:player1_id(name), player2:player2_id(name)`).single();
-
     if (error) {
         showToast(`Error: ${error.message}`, 'error');
     } else {
         showToast('Partido actualizado.', 'success');
         const index = allMatchesData.findIndex(m => m.id === matchId);
         if (index !== -1) allMatchesData[index] = updatedMatch;
-        
         currentEditRow.remove();
         currentEditRow = null;
-        
         const oldRow = document.querySelector(`tr[data-match-id='${matchId}']`);
         if (oldRow) oldRow.replaceWith(createMatchRow(updatedMatch));
     }
@@ -285,7 +367,6 @@ function addSetInput(set, p1Id, p2Id, matchId) {
     if (container.children.length >= 3) return;
     const p1Name = allPlayers.find(p => p.id === p1Id)?.name || 'Jugador 1';
     const p2Name = allPlayers.find(p => p.id === p2Id)?.name || 'Jugador 2';
-    
     const setRow = document.createElement('div');
     setRow.className = 'set-input-row';
     setRow.innerHTML = `
@@ -301,10 +382,8 @@ function addSetInput(set, p1Id, p2Id, matchId) {
 function autoCalculateWinner(matchId) {
     const form = document.getElementById(`inline-edit-form-${matchId}`);
     if (!form) return;
-    
     const p1Id = parseInt(form.elements.winner_id.options[1].value);
     const p2Id = parseInt(form.elements.winner_id.options[2].value);
-    
     let p1SetsWon = 0, p2SetsWon = 0;
     form.querySelectorAll('.set-input-row').forEach(row => {
         const p1Score = parseInt(row.querySelector('input[data-player="p1"]').value) || 0;
@@ -312,7 +391,6 @@ function autoCalculateWinner(matchId) {
         if (p1Score > p2Score) p1SetsWon++;
         else if (p2Score > p1Score) p2SetsWon++;
     });
-
     if (p1SetsWon >= 2) form.elements.winner_id.value = p1Id;
     else if (p2SetsWon >= 2) form.elements.winner_id.value = p2Id;
 }
@@ -361,10 +439,8 @@ async function populatePlayerSelectsForMatch(tournamentId, p1SelectId, p2SelectI
     p2Select.innerHTML = '<option value="">Cargando...</option>';
     p1Select.disabled = true; p2Select.disabled = true;
     if (!tournamentId) return;
-
     const { data: tournamentPlayers } = await supabase.from('tournament_players').select('players(*)').eq('tournament_id', tournamentId);
     const playersInTournament = (tournamentPlayers || []).map(tp => tp.players).filter(Boolean).sort((a,b) => a.name.localeCompare(b.name));
-    
     p1Select.innerHTML = '<option value="">Seleccionar jugador</option>';
     p2Select.innerHTML = '<option value="">Seleccionar jugador</option>';
     if (playersInTournament.length > 0) {
@@ -403,14 +479,29 @@ async function handleMatchSubmit(event) {
     const time = form.elements['match-time'].value;
     const venue = form.elements['match-venue'].value;
     const court = form.elements['match-court'].value;
+    const location = `${venue} - ${court}`;
 
     if (!tournamentId || !player1Id || !player2Id || !date || !time || !venue || !court || player1Id === player2Id) {
         return showToast('Todos los campos son obligatorios.', 'error');
     }
+    
+    // --- NUEVA VALIDACIÓN ---
+    const { data: existingMatch, error: checkError } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('match_date', date)
+        .eq('match_time', time)
+        .eq('location', location)
+        .single();
 
-    const location = `${venue} - ${court}`;
+    if (checkError && checkError.code !== 'PGRST116') { // Ignora el error "no rows found"
+        return showToast(`Error al verificar partido: ${checkError.message}`, 'error');
+    }
+    if (existingMatch) {
+        return showToast('Ya existe un partido en esta cancha, fecha y hora.', 'error');
+    }
+
     const tournament = allTournaments.find(t => t.id == tournamentId);
-
     const { error } = await supabase.from('matches').insert([{
         tournament_id: parseInt(tournamentId), player1_id: parseInt(player1Id), player2_id: parseInt(player2Id),
         category_id: tournament.category_id, match_date: date, match_time: time, location: location,
@@ -456,53 +547,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupEventListeners() {
-    // Filtros y búsqueda
-    document.getElementById('match-filter').addEventListener('change', applyFiltersAndRender);
-    document.getElementById('filter-by-category').addEventListener('change', applyFiltersAndRender);
-    document.getElementById('filter-by-team').addEventListener('change', applyFiltersAndRender);
-    document.getElementById('search-player-match').addEventListener('input', applyFiltersAndRender);
-
-    // Selección múltiple
-    const selectAllEl = document.getElementById('select-all-matches');
-    if (selectAllEl) selectAllEl.addEventListener('change', handleSelectAll);
-
-    // Acciones flotantes
-    const deleteBtn = document.getElementById('floating-delete-btn');
-    if (deleteBtn) deleteBtn.addEventListener('click', handleBulkDelete);
-
-    const programBtn = document.getElementById('floating-program-btn');
-    if (programBtn) programBtn.addEventListener('click', handleGenerateProgram);
-
-    // Remover el botón de PDF
-    const pdfBtn = document.getElementById('floating-pdf-btn');
-    if (pdfBtn) pdfBtn.style.display = 'none';
-
-    // Formulario de creación de partido
-    const matchForm = document.getElementById('match-form');
-    if (matchForm) matchForm.addEventListener('submit', handleMatchSubmit);
-
-    // Sede y cancha en formulario de partido
-    const venueEl = document.getElementById('match-venue');
-    if (venueEl) venueEl.addEventListener('change', function() {
-        populateCourtSelect();
+    flatpickr("#date-range-picker", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: "es",
+        onChange: function(selectedDates) {
+            applyFiltersAndRender();
+            document.getElementById('clear-date-filter').style.display = selectedDates.length > 0 ? 'inline-block' : 'none';
+        }
+    });
+    document.getElementById('clear-date-filter').addEventListener('click', () => {
+        flatpickr("#date-range-picker").clear();
+        applyFiltersAndRender();
     });
 
-    // Torneo y jugadores en formulario de partido
-    const tournamentEl = document.getElementById('match-tournament');
-    if (tournamentEl) tournamentEl.addEventListener('change', function() {
-        populatePlayerSelectsForMatch(
-            this.value,
-            'match-player1',
-            'match-player2'
-        );
-    });
+    document.getElementById('match-form').addEventListener('submit', handleMatchSubmit);
+    document.getElementById('match-tournament').addEventListener('change', () => populatePlayerSelectsForMatch(document.getElementById('match-tournament').value, 'match-player1', 'match-player2'));
+    document.getElementById('match-venue').addEventListener('change', () => populateCourtSelect());
+    
+    const filterInputs = ['match-filter', 'filter-by-category', 'filter-by-team', 'search-player-match'];
+    filterInputs.forEach(id => document.getElementById(id).addEventListener(id.includes('search') ? 'input' : 'change', applyFiltersAndRender));
+    
+    document.getElementById('select-all-matches').addEventListener('change', handleSelectAll);
+    document.getElementById('floating-delete-btn').addEventListener('click', handleBulkDelete);
+    document.getElementById('floating-program-btn').addEventListener('click', handleGenerateProgram);
+    document.getElementById('floating-pdf-btn').addEventListener('click', handleGeneratePdf);
 }
 
 async function fetchAllMatches() {
     const { data, error } = await supabase
         .from('matches')
         .select('*, player1:player1_id(name), player2:player2_id(name)')
-        .order('match_date', { ascending: true });
+        .order('match_date', { ascending: false })
+        .order('match_time', { ascending: false });
+
     if (error) {
         showToast(`Error al cargar partidos: ${error.message}`, 'error');
         allMatchesData = [];

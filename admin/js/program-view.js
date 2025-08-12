@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Cargar todos los jugadores para los selectores
     const { data: playersData } = await supabase.from('players').select('id, name').order('name');
     if (playersData) {
         allPlayers = playersData;
@@ -63,7 +62,6 @@ function renderProgram(title, matches, container) {
         return acc;
     }, {});
     
-    // Generar opciones para los selectores una sola vez
     const playerOptions = allPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 
     let html = `
@@ -83,6 +81,7 @@ function renderProgram(title, matches, container) {
             html += `
                 <thead>
                     <tr>
+                        <th>Cancha</th>
                         <th>Hora</th>
                         <th>Jugador 1</th>
                         <th>Jugador 2</th>
@@ -94,28 +93,35 @@ function renderProgram(title, matches, container) {
             const dayMatches = days[day].sort((a,b) => a.match_time.localeCompare(b.match_time));
             
             dayMatches.forEach(match => {
+                const court = match.location.split(' - ')[1]?.trim() || '-';
+                const p1_confirmed = match.p1_confirmed;
+                const p2_confirmed = match.p2_confirmed;
+
                 html += `
                     <tr data-match-id="${match.id}">
+                        <td data-label="Cancha">${court}</td>
                         <td data-label="Hora">${match.match_time ? match.match_time.substring(0, 5) : ''} hs</td>
                         <td data-label="Jugador 1" class="player-cell">
-                            <span class="player-confirm-toggle" onclick="toggleConfirmation(this, ${match.id}, 'p1', ${!match.p1_confirmed})">
-                                <span class="status-icon ${match.p1_confirmed ? 'confirmed' : 'pending'}">${match.p1_confirmed ? '✓' : '?'}</span>
-                                Asistencia
-                            </span>
-                            <select class="player-select" data-match-id="${match.id}" data-player-slot="p1" onchange="handlePlayerChange(event)">
-                                <option value="${match.player1.id}" selected>${match.player1.name}</option>
-                                ${playerOptions}
-                            </select>
+                            <div class="player-select-wrapper">
+                                <span class="player-confirm-toggle" title="Confirmar Asistencia" onclick="toggleConfirmation(this, ${match.id}, 'p1', ${!p1_confirmed})">
+                                    <span class="status-icon ${p1_confirmed ? 'confirmed' : 'pending'}">${p1_confirmed ? '✓' : '?'}</span>
+                                </span>
+                                <select class="player-select" data-match-id="${match.id}" data-player-slot="p1" onchange="handlePlayerChange(event)">
+                                    <option value="${match.player1.id}" selected>${match.player1.name}</option>
+                                    ${playerOptions}
+                                </select>
+                            </div>
                         </td>
                         <td data-label="Jugador 2" class="player-cell">
-                             <span class="player-confirm-toggle" onclick="toggleConfirmation(this, ${match.id}, 'p2', ${!match.p2_confirmed})">
-                                <span class="status-icon ${match.p2_confirmed ? 'confirmed' : 'pending'}">${match.p2_confirmed ? '✓' : '?'}</span>
-                                Asistencia
-                            </span>
-                             <select class="player-select" data-match-id="${match.id}" data-player-slot="p2" onchange="handlePlayerChange(event)">
-                                <option value="${match.player2.id}" selected>${match.player2.name}</option>
-                                ${playerOptions}
-                            </select>
+                             <div class="player-select-wrapper">
+                                <span class="player-confirm-toggle" title="Confirmar Asistencia" onclick="toggleConfirmation(this, ${match.id}, 'p2', ${!p2_confirmed})">
+                                    <span class="status-icon ${p2_confirmed ? 'confirmed' : 'pending'}">${p2_confirmed ? '✓' : '?'}</span>
+                                </span>
+                                <select class="player-select" data-match-id="${match.id}" data-player-slot="p2" onchange="handlePlayerChange(event)">
+                                    <option value="${match.player2.id}" selected>${match.player2.name}</option>
+                                    ${playerOptions}
+                                </select>
+                             </div>
                         </td>
                         <td data-label="Categoría">${match.categories ? match.categories.name : 'N/A'}</td>
                     </tr>
@@ -130,7 +136,7 @@ function renderProgram(title, matches, container) {
 function handlePlayerChange(event) {
     const select = event.target;
     const matchId = parseInt(select.dataset.matchId);
-    const playerSlot = select.dataset.playerSlot; // 'p1' o 'p2'
+    const playerSlot = select.dataset.playerSlot;
     const newPlayerId = parseInt(select.value);
 
     const key = playerSlot === 'p1' ? 'player1_id' : 'player2_id';
@@ -162,12 +168,24 @@ function toggleConfirmation(element, matchId, playerKey, newStatus) {
 
 async function saveAllChanges() {
     const saveBtn = document.getElementById('save-changes-btn');
+    
+    const hasPlayerChanges = pendingPlayerChanges.size > 0;
+    const hasConfirmationChanges = pendingConfirmations.size > 0;
+
+    if (!hasPlayerChanges && !hasConfirmationChanges) {
+        showToast('No hay cambios para guardar.', 'info');
+        return;
+    }
+
+    if (!confirm('¿Estás seguro de que quieres guardar todos los cambios de jugadores y asistencias?')) {
+        return;
+    }
+
     saveBtn.disabled = true;
     saveBtn.textContent = 'Guardando...';
 
     const allChanges = new Map();
 
-    // Combinar cambios de jugadores y confirmaciones
     pendingPlayerChanges.forEach((changes, id) => {
         if (!allChanges.has(id)) allChanges.set(id, {});
         Object.assign(allChanges.get(id), changes);

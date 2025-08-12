@@ -1627,3 +1627,82 @@ input[type=number] { -moz-appearance: textfield; }
     background-color: var(--surface-hover);
 }
 
+
+/* --- ESTILOS MEJORADOS PARA SELECTOR DE JUGADOR Y ESTADO CONFIRMADO --- */
+.player-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.player-select {
+    width: 100%;
+    padding: 0.6rem 2.5rem 0.6rem 0.8rem; /* Espacio para la flecha */
+    background-color: var(--surface-hover);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 1rem;
+    font-family: inherit;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.player-select:hover {
+    border-color: #555;
+}
+
+.player-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+/* Flecha custom para el selector */
+.player-select-wrapper::after {
+    content: '▼';
+    position: absolute;
+    right: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary-color);
+    pointer-events: none;
+}
+
+/* Estilo para cuando está deshabilitado (confirmado) */
+.player-select:disabled {
+    background-color: #2a2a2a;
+    color: var(--text-secondary-color);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.player-select-wrapper.confirmed::after {
+    content: '✔';
+    color: var(--success-color);
+}
+
+.player-confirm-toggle {
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.player-confirm-toggle.confirmed {
+    color: var(--success-color);
+    pointer-events: none; /* No se puede hacer clic si ya está confirmado */
+}
+
+/* --- ESTILO REFINADO PARA BOTÓN DE ASISTENCIA --- */
+.player-select-wrapper .player-confirm-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0.5rem; /* Ajusta el área de clic */
+}
+.player-select-wrapper .status-icon {
+    font-size: 1.2rem; /* Aumenta el tamaño del ícono */
+}

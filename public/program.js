@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 1. Obtener el programa y los IDs de los partidos
     const { data: program, error: programError } = await supabase
         .from('programs')
         .select('title, match_ids')
@@ -29,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. Obtener los datos actualizados de los partidos usando los IDs
     const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
         .select(`*, player1:player1_id(name), player2:player2_id(name)`)
@@ -64,7 +62,9 @@ function renderProgram(title, matches, container) {
         const days = groupedByVenue[venue];
         for (const day in days) {
             html += `<h3 class="day-title">${day}</h3>`;
-            html += '<div class="table-wrapper">';
+
+            // --- VISTA DE TABLA PARA ESCRITORIO ---
+            html += '<div class="table-wrapper desktop-only">';
             html += '<table class="program-table">';
             html += `
                 <thead>
@@ -74,7 +74,6 @@ function renderProgram(title, matches, container) {
                         <th>Jugador 1</th>
                         <th></th>
                         <th>Jugador 2</th>
-                        <th>Anotar Resultado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,15 +82,8 @@ function renderProgram(title, matches, container) {
             
             dayMatches.forEach(match => {
                 const court = match.location.split(' - ')[1]?.trim() || '-';
-                
                 const p1Class = match.p1_confirmed ? 'player-confirmed' : 'player-unconfirmed';
                 const p2Class = match.p2_confirmed ? 'player-confirmed' : 'player-unconfirmed';
-                
-                let anotadorHtml = '<span style="color: var(--text-secondary-color);">No disponible</span>';
-                if (match.submission_token) {
-                    const submitUrl = `submit-result.html?id=${match.id}&token=${match.submission_token}`;
-                    anotadorHtml = `<a href="${submitUrl}" class="btn-program" target="_blank">Anotar</a>`;
-                }
                 
                 html += `
                     <tr>
@@ -100,11 +92,35 @@ function renderProgram(title, matches, container) {
                         <td class="player-name ${p1Class}">${match.player1.name}</td>
                         <td class="vs-cell">vs</td>
                         <td class="player-name ${p2Class}">${match.player2.name}</td>
-                        <td>${anotadorHtml}</td>
                     </tr>
                 `;
             });
             html += '</tbody></table></div>';
+
+
+            // --- VISTA DE TARJETAS PARA MÓVIL ---
+            html += '<div class="program-grid mobile-only">';
+            dayMatches.forEach(match => {
+                 const court = match.location.split(' - ')[1]?.trim() || '-';
+                 const time = match.match_time ? match.match_time.substring(0, 5) + ' hs' : '';
+                 const p1Class = match.p1_confirmed ? 'player-confirmed' : 'player-unconfirmed';
+                 const p2Class = match.p2_confirmed ? 'player-confirmed' : 'player-unconfirmed';
+
+                html += `
+                    <div class="match-card">
+                        <div class="match-meta">
+                            <span>${court}</span>
+                            <span>${time}</span>
+                        </div>
+                        <div class="match-players">
+                            <div class="player ${p1Class}">${match.player1.name}</div>
+                            <div class="vs">vs</div>
+                            <div class="player ${p2Class}">${match.player2.name}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
         }
     }
     container.innerHTML = html;
