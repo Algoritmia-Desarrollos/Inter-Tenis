@@ -1361,3 +1361,164 @@ input[type=number] { -moz-appearance: textfield; }
     padding: 0.5rem 1.5rem;
     border-bottom: 2px solid var(--border-color);
 }
+
+/* --- AÑADE ESTO AL FINAL DE TU ARCHIVO admin.css --- */
+
+.matches-table th, .matches-table td {
+    padding: 0.6rem 0.5rem; /* Reduce el padding para hacerla más compacta */
+    font-size: 0.85rem;     /* Achica la letra */
+    text-align: center;     /* Centra el contenido de las celdas */
+    vertical-align: middle;
+}
+
+.matches-table .player-name-cell {
+    text-align: left;       /* Alinea los nombres de los jugadores a la izquierda */
+    font-weight: 500;
+}
+
+.matches-table .points-cell {
+    font-weight: 700;
+}
+
+.matches-table .sets-cell {
+    color: var(--text-secondary-color);
+}
+
+.matches-table .winner-player {
+    font-weight: 700;
+    color: var(--gold-color); /* Color amarillo para el ganador */
+}
+
+.matches-table .actions-cell .btn-small {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+/* --- AÑADE ESTO AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Estilo para la fila seleccionada y hover */
+.matches-table tbody tr:hover {
+    background-color: var(--surface-hover);
+}
+.matches-table tbody tr.selected {
+    background-color: var(--primary-hover) !important;
+    color: white;
+}
+.matches-table tbody tr.selected small, .matches-table tbody tr.selected .sets-cell {
+    color: #eee;
+}
+
+/* Estilo para la nueva celda de fecha y hora */
+.matches-table .date-time-cell {
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.matches-table .date-time-cell small {
+    display: block;
+    color: var(--text-secondary-color);
+    font-size: 0.9em;
+}
+
+/* Estilos para la fila de edición desplegable */
+.match-details-row td {
+    padding: 0;
+    background-color: var(--surface-light);
+    border-top: 2px solid var(--primary-color);
+}
+.details-content {
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Estilos para botones flotantes */
+.floating-actions-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--surface-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+#floating-selection-counter {
+    font-weight: 500;
+    color: var(--text-secondary-color);
+}
+
+/* --- AÑADE ESTO AL FINAL DE TU ARCHIVO admin.css --- */
+
+/* Estilo para la fila seleccionada y hover */
+.matches-table tbody tr:hover {
+    background-color: var(--surface-hover);
+}
+.matches-table tbody tr.selected {
+    background-color: var(--primary-hover) !important;
+    color: white;
+}
+.matches-table tbody tr.selected small, .matches-table tbody tr.selected .sets-cell {
+    color: #eee;
+}
+
+/* Estilo para la nueva celda de fecha y hora */
+.matches-table .date-time-cell {
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.matches-table .date-time-cell small {
+    display: block;
+    color: var(--text-secondary-color);
+    font-size: 0.9em;
+}
+
+/* Estilos para la fila de edición desplegable */
+.match-details-row td {
+    padding: 0;
+    background-color: var(--surface-light);
+    border-top: 2px solid var(--primary-color);
+}
+.details-content {
+    padding: 1rem 1.5rem;
+    animation: fadeIn 0.3s ease;
+}
+.details-content .form-grid {
+    gap: 0.75rem 1.5rem;
+    padding-bottom: 0.5rem;
+}
+.details-content .form-group {
+    margin-bottom: 0.75rem;
+}
+.details-content h4 {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: var(--text-secondary-color);
+}
+
+/* Estilos para botones flotantes */
+.floating-actions-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--surface-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+#floating-selection-counter {
+    font-weight: 500;
+    color: var(--text-secondary-color);
+}

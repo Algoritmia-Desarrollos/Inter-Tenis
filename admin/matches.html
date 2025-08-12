@@ -6,9 +6,10 @@
     <title>Partidos - Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="css/admin.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-    <div id="loader" class="loader-container" style="display: none;">
+    <div id="loader" class="loader-container">
         <div class="tennis-ball"></div>
     </div>
     <header id="main-header" class="header"></header>
@@ -53,50 +54,35 @@
                 <table class="matches-table">
                     <thead>
                         <tr>
-                            <th><input type="checkbox" id="select-all-matches"></th>
-                            <th>Fecha y Hora</th>
-                            <th>Torneo</th>
-                            <th>Jugadores</th>
-                            <th>Lugar</th>
-                            <th>Ganador</th>
+                            <th>
+                                <input type="checkbox" id="select-all-matches" title="Seleccionar todos los partidos">
+                                Fecha
+                            </th>
+                            <th>Sede</th>
+                            <th>Cancha</th>
+                            <th>Jugador 1</th>
+                            <th>Pts</th>
+                            <th>Resultado (Sets)</th>
+                            <th>Pts</th>
+                            <th>Jugador 2</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="matches-list-tbody">
                     </tbody>
                 </table>
              </div>
-             <div class="list-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <button id="generate-program-btn" class="btn" disabled>Crear Programa</button>
-                <div id="pagination-container" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                    <div class="list-filters">
-                        <label for="items-per-page">Partidos por página:</label>
-                        <select id="items-per-page" class="filter-input">
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="all">Todos</option>
-                        </select>
-                    </div>
-                    <div id="pagination-controls"></div>
-                </div>
-             </div>
+             <div id="sentinel" style="height: 10px;"></div>
         </div>
     </main>
     <div id="toast-container"></div>
-
-    <button id="save-confirmations-btn" class="btn floating-btn" style="display: none;">
-        Guardar Cambios de Asistencia
-    </button>
-
-    <div id="edit-match-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Editar Partido</h3>
-                <button id="close-modal-btn" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body" id="modal-body-content">
-            </div>
-        </div>
+    
+    <div id="floating-actions-container" class="floating-actions-container" style="display: none;">
+        <span id="floating-selection-counter"></span>
+        <button id="floating-delete-btn" class="btn btn-danger">Eliminar</button>
+        <button id="floating-program-btn" class="btn btn-secondary">Crear Programa</button>
+        <button id="floating-pdf-btn" class="btn">Generar PDF</button>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
