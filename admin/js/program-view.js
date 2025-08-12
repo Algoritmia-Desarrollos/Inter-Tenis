@@ -1,6 +1,7 @@
 // --- VARIABLES GLOBALES ---
 let pendingConfirmations = new Map();
-let currentProgramMatches = [];
+let pendingPlayerChanges = new Map();
+let allPlayers = [];
 
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,20 +9,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slug = params.get('slug');
     
     if (!slug) {
-        document.getElementById('program-container').innerHTML = '<h1>Programa no encontrado</h1><p>El enlace puede ser incorrecto.</p>';
+        document.getElementById('program-content').innerHTML = '<h1>Programa no encontrado</h1><p>El enlace puede ser incorrecto.</p>';
         return;
+    }
+
+    // Cargar todos los jugadores para los selectores
+    const { data: playersData } = await supabase.from('players').select('id, name').order('name');
+    if (playersData) {
+        allPlayers = playersData;
     }
 
     await loadProgram(slug);
     
-    document.getElementById('save-confirmations-btn').addEventListener('click', saveConfirmations);
+    document.getElementById('save-changes-btn').addEventListener('click', saveAllChanges);
 });
 
 async function loadProgram(slug) {
-    const container = document.getElementById('program-container');
+    const container = document.getElementById('program-content');
     container.innerHTML = '<p class="placeholder-text">Cargando programa...</p>';
 
-    // 1. Obtener el programa y los IDs de los partidos
     const { data: program, error: programError } = await supabase.from('programs').select('title, match_ids').eq('slug', slug).single();
 
     if (programError || !program) {
@@ -34,19 +40,17 @@ async function loadProgram(slug) {
         return;
     }
 
-    // 2. Obtener los datos actualizados de los partidos usando los IDs
     const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
-        .select(`*, player1:player1_id(name), player2:player2_id(name), categories(name)`)
+        .select(`*, player1:player1_id(id, name), player2:player2_id(id, name), categories(name)`)
         .in('id', program.match_ids);
 
     if (matchesError) {
         container.innerHTML = `<h1>Error</h1><p>No se pudieron cargar los datos de los partidos.</p>`;
         return;
     }
-
-    currentProgramMatches = matchesData;
-    renderProgram(program.title, currentProgramMatches, container);
+    
+    renderProgram(program.title, matchesData, container);
 }
 
 function renderProgram(title, matches, container) {
@@ -58,8 +62,15 @@ function renderProgram(title, matches, container) {
         acc[venue][matchDate].push(match);
         return acc;
     }, {});
+    
+    // Generar opciones para los selectores una sola vez
+    const playerOptions = allPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 
-    let html = `<h1 class="main-title" style="text-align: center; margin-bottom: 2rem;">${title}</h1>`;
+    let html = `
+    <div class="program-header">
+        <h1 class="main-title">${title}</h1>
+        <a href="programs.html" class="btn btn-secondary btn-back">← Volver a Programas</a>
+    </div>`;
     const sortedVenues = Object.keys(groupedByVenue).sort();
 
     for (const venue of sortedVenues) {
@@ -83,27 +94,30 @@ function renderProgram(title, matches, container) {
             const dayMatches = days[day].sort((a,b) => a.match_time.localeCompare(b.match_time));
             
             dayMatches.forEach(match => {
-                const p1Icon = match.p1_confirmed ? '✓' : '?';
-                const p1Class = match.p1_confirmed ? 'confirmed' : 'pending';
-                const p2Icon = match.p2_confirmed ? '✓' : '?';
-                const p2Class = match.p2_confirmed ? 'confirmed' : 'pending';
-
                 html += `
                     <tr data-match-id="${match.id}">
-                        <td>${match.match_time ? match.match_time.substring(0, 5) : ''} hs</td>
-                        <td class="player-cell">
+                        <td data-label="Hora">${match.match_time ? match.match_time.substring(0, 5) : ''} hs</td>
+                        <td data-label="Jugador 1" class="player-cell">
                             <span class="player-confirm-toggle" onclick="toggleConfirmation(this, ${match.id}, 'p1', ${!match.p1_confirmed})">
-                                <span class="status-icon ${p1Class}">${p1Icon}</span>
-                                ${match.player1.name}
+                                <span class="status-icon ${match.p1_confirmed ? 'confirmed' : 'pending'}">${match.p1_confirmed ? '✓' : '?'}</span>
+                                Asistencia
                             </span>
+                            <select class="player-select" data-match-id="${match.id}" data-player-slot="p1" onchange="handlePlayerChange(event)">
+                                <option value="${match.player1.id}" selected>${match.player1.name}</option>
+                                ${playerOptions}
+                            </select>
                         </td>
-                        <td class="player-cell">
-                            <span class="player-confirm-toggle" onclick="toggleConfirmation(this, ${match.id}, 'p2', ${!match.p2_confirmed})">
-                                <span class="status-icon ${p2Class}">${p2Icon}</span>
-                                ${match.player2.name}
+                        <td data-label="Jugador 2" class="player-cell">
+                             <span class="player-confirm-toggle" onclick="toggleConfirmation(this, ${match.id}, 'p2', ${!match.p2_confirmed})">
+                                <span class="status-icon ${match.p2_confirmed ? 'confirmed' : 'pending'}">${match.p2_confirmed ? '✓' : '?'}</span>
+                                Asistencia
                             </span>
+                             <select class="player-select" data-match-id="${match.id}" data-player-slot="p2" onchange="handlePlayerChange(event)">
+                                <option value="${match.player2.id}" selected>${match.player2.name}</option>
+                                ${playerOptions}
+                            </select>
                         </td>
-                        <td>${match.categories ? match.categories.name : 'N/A'}</td>
+                        <td data-label="Categoría">${match.categories ? match.categories.name : 'N/A'}</td>
                     </tr>
                 `;
             });
@@ -113,48 +127,72 @@ function renderProgram(title, matches, container) {
     container.innerHTML = html;
 }
 
+function handlePlayerChange(event) {
+    const select = event.target;
+    const matchId = parseInt(select.dataset.matchId);
+    const playerSlot = select.dataset.playerSlot; // 'p1' o 'p2'
+    const newPlayerId = parseInt(select.value);
+
+    const key = playerSlot === 'p1' ? 'player1_id' : 'player2_id';
+
+    if (!pendingPlayerChanges.has(matchId)) {
+        pendingPlayerChanges.set(matchId, {});
+    }
+    pendingPlayerChanges.get(matchId)[key] = newPlayerId;
+
+    document.getElementById('save-changes-btn').style.display = 'block';
+}
+
 function toggleConfirmation(element, matchId, playerKey, newStatus) {
-    // Actualizar UI
     const icon = element.querySelector('.status-icon');
     icon.textContent = newStatus ? '✓' : '?';
     icon.classList.toggle('confirmed', newStatus);
     icon.classList.toggle('pending', !newStatus);
     
-    // Actualizar el handler del evento
     element.setAttribute('onclick', `toggleConfirmation(this, ${matchId}, '${playerKey}', ${!newStatus})`);
 
-    // Guardar cambio pendiente
     const confirmationKey = `${playerKey}_confirmed`;
     if (!pendingConfirmations.has(matchId)) {
         pendingConfirmations.set(matchId, {});
     }
     pendingConfirmations.get(matchId)[confirmationKey] = newStatus;
 
-    document.getElementById('save-confirmations-btn').style.display = 'block';
+    document.getElementById('save-changes-btn').style.display = 'block';
 }
 
-async function saveConfirmations() {
-    const saveBtn = document.getElementById('save-confirmations-btn');
+async function saveAllChanges() {
+    const saveBtn = document.getElementById('save-changes-btn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Guardando...';
 
+    const allChanges = new Map();
+
+    // Combinar cambios de jugadores y confirmaciones
+    pendingPlayerChanges.forEach((changes, id) => {
+        if (!allChanges.has(id)) allChanges.set(id, {});
+        Object.assign(allChanges.get(id), changes);
+    });
+    pendingConfirmations.forEach((changes, id) => {
+        if (!allChanges.has(id)) allChanges.set(id, {});
+        Object.assign(allChanges.get(id), changes);
+    });
+
     const updatePromises = [];
-    for (const [id, changes] of pendingConfirmations.entries()) {
+    for (const [id, changes] of allChanges.entries()) {
         const promise = supabase.from('matches').update(changes).eq('id', id);
         updatePromises.push(promise);
     }
 
     try {
         const results = await Promise.all(updatePromises);
-        const error = results.find(res => res.error);
-        if (error) throw error.error;
+        const errorResult = results.find(res => res.error);
+        if (errorResult) throw errorResult.error;
 
-        showToast('Confirmaciones guardadas con éxito.', 'success');
+        showToast('Cambios guardados con éxito.', 'success');
         pendingConfirmations.clear();
+        pendingPlayerChanges.clear();
         saveBtn.style.display = 'none';
 
-        // Opcional: recargar para ver los cambios reflejados si hay dudas.
-        // La UI ya está actualizada, pero esto re-confirma desde la DB.
         setTimeout(() => {
             location.reload();
         }, 1000);
@@ -163,6 +201,6 @@ async function saveConfirmations() {
         showToast(`Error al guardar: ${error.message}`, 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Guardar Cambios de Asistencia';
+        saveBtn.textContent = 'Guardar Cambios';
     }
 }

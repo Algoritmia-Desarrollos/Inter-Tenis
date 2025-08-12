@@ -1,9 +1,28 @@
-document.addEventListener('DOMContentLoaded', () => {
-    populateTournamentFilter();
-    const container = document.getElementById('rankings-container');
-    container.innerHTML = '<p class="placeholder-text">Seleccione un torneo para ver los rankings.</p>';
-    document.getElementById('tournament-filter').addEventListener('change', renderRankings);
+document.addEventListener('DOMContentLoaded', async () => {
+    // AQUI ESTÁ EL CAMBIO: Leer parámetros de la URL
+    const params = new URLSearchParams(window.location.search);
+    const tournamentIdToSelect = params.get('tournamentId');
+    const playerToHighlight = params.get('highlightPlayerId');
+
+    await populateTournamentFilter();
+    
+    // Si viene un ID de torneo en la URL, lo seleccionamos y cargamos el ranking
+    if (tournamentIdToSelect) {
+        const select = document.getElementById('tournament-filter');
+        select.value = tournamentIdToSelect;
+        // Pasamos el ID del jugador a resaltar a la función que renderiza
+        await renderRankings(playerToHighlight);
+    } else {
+        const container = document.getElementById('rankings-container');
+        container.innerHTML = '<p class="placeholder-text">Seleccione un torneo para ver los rankings.</p>';
+    }
+
+    document.getElementById('tournament-filter').addEventListener('change', (event) => {
+        // Al cambiar manualmente, no resaltamos a nadie
+        renderRankings(null);
+    });
 });
+
 
 async function populateTournamentFilter() {
     const select = document.getElementById('tournament-filter');
@@ -14,7 +33,7 @@ async function populateTournamentFilter() {
     }
 }
 
-async function renderRankings() {
+async function renderRankings(playerToHighlight = null) {
     const tournamentId = document.getElementById('tournament-filter').value;
     const container = document.getElementById('rankings-container');
     container.innerHTML = '<div class="placeholder-text">Calculando rankings...</div>';
@@ -31,21 +50,21 @@ async function renderRankings() {
     }
     const playerIds = tournamentPlayersLinks.map(link => link.player_id);
 
-    const { data: playersInTournament } = await supabase.from('players').select('*, teams(name), categories(id, name)').in('id', playerIds);
+    const { data: playersInTournament } = await supabase.from('players').select('*, teams(name, image_url), categories(id, name)').in('id', playerIds);
     const { data: matchesInTournament } = await supabase.from('matches').select('*').eq('tournament_id', tournamentId).not('winner_id', 'is', null);
 
     const stats = calculateStats(playersInTournament || [], matchesInTournament || []);
     const categoriesInTournament = [...new Map(playersInTournament.map(p => p && [p.category_id, p.categories]).filter(Boolean)).values()];
 
     container.innerHTML = '';
-    if (stats.every(s => s.pj === 0)) {
-        container.innerHTML = '<p class="placeholder-text">Aún no hay partidos completados en este torneo para mostrar un ranking.</p>';
+     if (categoriesInTournament.length === 0) {
+        container.innerHTML = '<p class="placeholder-text">No hay jugadores inscritos en este torneo.</p>';
         return;
     }
 
     categoriesInTournament.forEach(category => {
         let categoryStats = stats.filter(s => s.categoryId === category.id);
-        if (categoryStats.length === 0) return;
+        if (categoryStats.length === 0 && playersInTournament.filter(p => p.category_id === category.id).length === 0) return;
         
         const categoryTitle = document.createElement('h3');
         categoryTitle.className = 'category-title';
@@ -54,14 +73,17 @@ async function renderRankings() {
 
         const tableContainer = document.createElement('div');
         tableContainer.className = 'table-wrapper';
-        tableContainer.innerHTML = generateRankingsHTML(categoryStats);
+        // AQUI ESTÁ EL CAMBIO: Pasamos el ID del jugador a la función que crea el HTML
+        tableContainer.innerHTML = generateRankingsHTML(categoryStats, playerToHighlight);
         container.appendChild(tableContainer);
     });
 }
 
 function calculateStats(players, matches) {
     const stats = players.map(player => ({
-        playerId: player.id, name: player.name, categoryId: player.category_id, teamName: player.teams ? player.teams.name : 'N/A',
+        playerId: player.id, name: player.name, categoryId: player.category_id, 
+        teamName: player.teams ? player.teams.name : 'N/A',
+        teamImageUrl: player.teams ? player.teams.image_url : null,
         pj: 0, pg: 0, pp: 0, sg: 0, sp: 0, gg: 0, gp: 0, bonus: 0, puntos: 0,
     }));
 
@@ -111,18 +133,19 @@ function calculateStats(players, matches) {
     });
 
     stats.sort((a, b) => {
+        if (a.pj === 0 && b.pj > 0) return 1;
+        if (b.pj === 0 && a.pj > 0) return -1;
         if (b.promedio !== a.promedio) return b.promedio - a.promedio;
         if (b.difP !== a.difP) return b.difP - a.difP;
         if (b.difS !== a.difS) return b.difS - a.difS;
         if (b.difG !== a.difG) return b.difG - a.difG;
-        return b.pj - a.pj;
+        return b.puntos - a.puntos;
     });
 
     return stats;
 }
 
-// **CORRECCIÓN: La estructura de la tabla ahora es idéntica a la de la página pública.**
-function generateRankingsHTML(stats) {
+function generateRankingsHTML(stats, playerToHighlight = null) {
     let tableHTML = `
         <table class="matches-table ranking-table">
             <thead>
@@ -131,10 +154,10 @@ function generateRankingsHTML(stats) {
                     <th>Jugador</th>
                     <th>P+</th>
                     <th>P-</th>
-                    <th >Dif.</th>
+                    <th>Dif.</th>
                     <th class="divider-left">S+</th>
                     <th>S-</th>
-                    <th >Dif.</th>
+                    <th>Dif.</th>
                     <th class="divider-left">G+</th>
                     <th>G-</th>
                     <th>Dif.</th>
@@ -145,32 +168,47 @@ function generateRankingsHTML(stats) {
                 </tr>
             </thead>
             <tbody>`;
-    stats.forEach((s, index) => {
-        tableHTML += `
-            <tr>
-                <td class="position">${index + 1}°</td>
-                <td class="player-cell">
-                    ${s.name}
-                    ${s.teamName !== 'N/A' ? `<span class="team-name">(${s.teamName})</span>` : ''}
-                </td>
-                <td>${s.pg}</td>
-                <td>${s.pp}</td>
-                <td ><span class="diff-value">${s.difP > 0 ? '+' : ''}${s.difP}</span></td>
-                <td class="divider-left">${s.sg}</td>
-                <td>${s.sp}</td>
-                <td ><span class="diff-value">${s.difS > 0 ? '+' : ''}${s.difS}</span></td>
-                <td class="divider-left">${s.gg}</td>
-                <td>${s.gp}</td>
-                <td "><span class="diff-value">${s.difG > 0 ? '+' : ''}${s.difG}</span></td>
-                <td class="divider-left">${s.bonus}</td>
-                <td class="divider-left points">${s.puntos}</td>
-                <td class="divider-left">${s.parcial.toFixed(2)}</td>
-                <td class="divider-left promedio">
-                    ${s.promedio.toFixed(2)}
-                    <span class="prom-divisor">${s.partidosParaPromediar}</span>
-                </td>
-            </tr>`;
-    });
+    
+    if (stats.length === 0) {
+        tableHTML += '<tr><td colspan="15" style="text-align:center; padding: 2rem;">No hay jugadores en esta categoría.</td></tr>';
+    } else {
+        stats.forEach((s, index) => {
+            const hasPlayed = s.pj > 0;
+            const difPClass = s.difP < 0 ? 'negative' : '';
+            const difSClass = s.difS < 0 ? 'negative' : '';
+            const difGClass = s.difG < 0 ? 'negative' : '';
+
+            // AQUI ESTÁ EL CAMBIO: Se añade la clase de resaltado si los IDs coinciden
+            const highlightClass = s.playerId == playerToHighlight ? 'player-highlight' : '';
+
+            tableHTML += `
+                <tr class="${highlightClass}">
+                    <td class="position">${index + 1}°</td>
+                    <td class="player-cell">
+                        <div class="player-cell-content">
+                            <span>${s.name}</span>
+                            ${s.teamImageUrl ? `<img src="${s.teamImageUrl}" class="team-logo-ranking" alt="${s.teamName}">` : ''}
+                        </div>
+                    </td>
+                    <td>${hasPlayed ? s.pg : ''}</td>
+                    <td>${hasPlayed ? s.pp : ''}</td>
+                    <td><span class="diff-value ${difPClass}">${hasPlayed ? s.difP : ''}</span></td>
+                    <td class="divider-left">${hasPlayed ? s.sg : ''}</td>
+                    <td>${hasPlayed ? s.sp : ''}</td>
+                    <td><span class="diff-value ${difSClass}">${hasPlayed ? s.difS : ''}</span></td>
+                    <td class="divider-left">${hasPlayed ? s.gg : ''}</td>
+                    <td>${hasPlayed ? s.gp : ''}</td>
+                    <td><span class="diff-value ${difGClass}">${hasPlayed ? s.difG : ''}</span></td>
+                    <td class="divider-left">${hasPlayed ? s.bonus : ''}</td>
+                    <td class="divider-left points">${hasPlayed ? s.puntos : '0'}</td>
+                    <td class="divider-left">${hasPlayed ? s.parcial.toFixed(2) : ''}</td>
+                    <td class="divider-left promedio">
+                        ${s.promedio.toFixed(2)}
+                        <span class="prom-divisor">/${s.partidosParaPromediar}</span>
+                    </td>
+                </tr>`;
+        });
+    }
     tableHTML += '</tbody></table>';
     return tableHTML;
 }

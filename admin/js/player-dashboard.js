@@ -106,7 +106,8 @@ async function renderTournamentsList(playerId) {
         const tournament = item.tournaments;
         if (!tournament) return;
         const link = document.createElement('a');
-        link.href = `rankings.html?tournamentId=${tournament.id}`;
+        // AQUI ESTÁ EL CAMBIO: Se añade el ID del jugador al enlace
+        link.href = `rankings.html?tournamentId=${tournament.id}&highlightPlayerId=${playerId}`;
         link.className = 'list-item-simple interactive';
         link.innerHTML = `<span><strong>${tournament.name}</strong> (${tournament.categories.name})</span><span>&rarr;</span>`;
         container.appendChild(link);

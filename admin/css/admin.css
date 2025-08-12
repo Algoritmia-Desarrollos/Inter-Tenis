@@ -1522,3 +1522,108 @@ input[type=number] { -moz-appearance: textfield; }
     font-weight: 500;
     color: var(--text-secondary-color);
 }
+
+
+/* --- ESTILOS MEJORADOS PARA LA TABLA DE RANKINGS (ADMIN) --- */
+.ranking-table th, .ranking-table td {
+    border-right: 1px solid var(--border-color); /* Borde separador gris */
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.ranking-table th:last-child, .ranking-table td:last-child {
+    border-right: none; /* Elimina el borde en la última columna */
+}
+
+/* Estilo para columnas destacadas */
+.ranking-table .position,
+.ranking-table .points,
+.ranking-table .promedio {
+    font-size: 1.2em; /* Letra más grande */
+    font-weight: 700;
+    color: var(--gold-color) !important; /* Color dorado destacado */
+}
+
+/* Estilo para columnas de diferencia */
+.ranking-table .diff-value {
+    font-size: 0.8em; /* Letra más pequeña */
+    color: var(--text-secondary-color);
+}
+
+
+/* --- ESTILOS MEJORADOS PARA LA TABLA DE RANKINGS (ADMIN) --- */
+.ranking-table th.divider-left, 
+.ranking-table td.divider-left {
+    border-left: 2px solid var(--border-color) !important; /* Línea divisoria más gruesa */
+}
+
+.ranking-table th, .ranking-table td {
+    border-right: 1px solid var(--border-color);
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.ranking-table th:last-child, .ranking-table td:last-child {
+    border-right: none;
+}
+
+.ranking-table .position,
+.ranking-table .points,
+.ranking-table .promedio {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--gold-color) !important;
+}
+
+.ranking-table .diff-value {
+    font-size: 0.8em;
+    color: var(--text-secondary-color);
+}
+
+/* --- AJUSTES FINALES PARA TABLA DE RANKINGS (ADMIN) --- */
+.ranking-table th.divider-left, 
+.ranking-table td.divider-left {
+    border-left: 2px solid var(--border-color) !important; /* Línea divisoria más gruesa */
+}
+
+.ranking-table th, .ranking-table td {
+    border-right: 1px solid #2a2a2a; /* Líneas finas y muy sutiles */
+}
+.ranking-table th:last-child, .ranking-table td:last-child {
+    border-right: none;
+}
+
+.player-cell-content {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre nombre y logo */
+}
+
+.team-logo-ranking {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.diff-value.negative {
+    color: #ff453a; /* Color rojo para valores negativos */
+}
+
+.prom-divisor {
+    color: var(--text-secondary-color) !important;
+    font-size: 0.7em !important;
+    font-weight: 400 !important;
+}
+
+/* --- ESTILO PARA RESALTAR JUGADOR EN RANKING --- */
+.ranking-table tr.player-highlight td.player-cell span {
+    color: var(--primary-color); /* Color azul para el nombre del jugador */
+    font-weight: 700;
+}
+
+.ranking-table tr.player-highlight {
+    background-color: var(--surface-hover);
+}
+

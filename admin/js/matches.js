@@ -74,210 +74,12 @@ async function handleGenerateProgram() {
         return showToast(`Error al crear el programa: ${error.message}`, 'error');
     }
     
-    const programUrl = `${window.location.origin}/public/program.html?slug=${slug}`;
-    showToast('Programa creado con éxito.', 'success');
+    showToast('Programa creado con éxito. Redirigiendo...', 'success');
     
-    const toastContainer = document.getElementById('toast-container');
-    const linkToast = document.createElement('div');
-    linkToast.className = 'toast success';
-    linkToast.innerHTML = `<div><p style="margin:0;">¡Programa Creado!</p><a href="${programUrl}" target="_blank" style="color:white;text-decoration:underline;">Ver programa</a></div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;position:absolute;top:10px;right:10px;">&times;</button>`;
-    toastContainer.appendChild(linkToast);
-}
-
-async function handleGeneratePdf() {
-    if (selectedMatchIds.size === 0) return showToast('No hay partidos seleccionados.', 'error');
-    showToast('Generando PDF...');
-
-    const selectedMatches = [...selectedMatchIds].map(id => allMatchesData.find(m => m.id === id)).filter(Boolean);
-    selectedMatches.sort((a, b) => new Date(a.match_date) - new Date(b.match_date) || a.match_time.localeCompare(b.match_time));
-
-    const groupedByDateAndSede = selectedMatches.reduce((acc, match) => {
-        const date = new Date(match.match_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-        const sede = match.location?.split(' - ')[0] || 'N/A';
-        const key = `${sede.toUpperCase()} | ${date}`;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(match);
-        return acc;
-    }, {});
-
-    let pdfHtml = `<style>
-        body, .pdf-page {
-            font-family: Arial, sans-serif;
-            background: #181818 !important;
-            color: #fff !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 210mm;
-            min-height: 297mm;
-            box-sizing: border-box;
-        }
-        .pdf-page {
-            background: #181818 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .day-block {
-            margin-bottom: 12px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid #f3ca3e;
-            background: #181818 !important;
-        }
-        .header-row {
-            display: flex;
-            align-items: center;
-            background: #f3ca3e;
-            color: #222;
-            padding: 8px 16px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .header-row .sede { font-size: 20px; font-weight: bold; margin-right: 24px; }
-        .header-row .fecha { flex: 1; text-align: left; }
-        .header-row .clima { font-size: 15px; text-align: right; }
-        .match-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 15px;
-            margin: 0;
-            background: #181818 !important;
-        }
-        .match-table th, .match-table td {
-            text-align: center !important;
-            vertical-align: middle !important;
-            background: #181818 !important;
-            color: #fff !important;
-        }
-        .match-table th {
-            background: #222 !important;
-            color: #f3ca3e !important;
-            font-weight: bold;
-            padding: 6px 0;
-            border-bottom: 2px solid #f3ca3e;
-        }
-        .match-table td {
-            padding: 8px 4px;
-            border-bottom: 1px solid #444;
-        }
-        .cancha-cell {
-            background: #f3ca3e !important;
-            color: #222 !important;
-            font-weight: bold;
-            border-radius: 4px;
-            padding: 4px 10px;
-            font-size: 16px;
-        }
-        .hora-cell {
-            background: #222 !important;
-            color: #f3ca3e !important;
-            font-weight: bold;
-            font-size: 15px;
-            border-radius: 4px;
-            padding: 4px 10px;
-        }
-        .player-cell { font-weight: bold; font-size: 15px; }
-        .player-cell.winner { color: #f3ca3e !important; }
-        .player-cell.loser { color: #bbb !important; }
-        .score-cell { font-size: 15px; font-weight: bold; text-align: center; }
-        .score-box {
-            display: inline-block;
-            min-width: 24px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .score-box-winner { background: #f3ca3e !important; color: #222 !important; }
-        .score-box-bonus { background: #8c5c02 !important; color: #fff !important; }
-        .score-box-loser { background: #333 !important; color: #fff !important; }
-        .sets-cell { font-size: 14px; color: #fff !important; font-weight: bold; }
-        .category-cell { color: #e85d04 !important; font-weight: bold; font-size: 14px; }
-        .team-logo {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            vertical-align: middle;
-            margin-left: 8px;
-            background: #333 !important;
-        }
-    </style>
-    <div class="pdf-page">`;
-
-    for (const groupKey in groupedByDateAndSede) {
-        const [sede, fecha] = groupKey.split(' | ');
-        const climaHtml = `<span class="clima">☀️ 18°/8° 13-14 km/h</span>`;
-
-        pdfHtml += `<div class="day-block">
-            <div class="header-row">
-                <span class="sede">${sede}</span>
-                <span class="fecha">${fecha}</span>
-                ${climaHtml}
-            </div>
-            <table class="match-table">
-                <thead>
-                    <tr>
-                        <th>Cancha</th>
-                        <th>Hora</th>
-                        <th>Jugador 1</th>
-                        <th>Pts</th>
-                        <th>Sets</th>
-                        <th>Pts</th>
-                        <th>Jugador 2</th>
-                        <th>Categoría</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        groupedByDateAndSede[groupKey].forEach(match => {
-            const p1 = allPlayers.find(p => p.id === match.player1_id);
-            const p2 = allPlayers.find(p => p.id === match.player2_id);
-            const team1 = p1 ? allTeams.find(t => t.id === p1.team_id) : null;
-            const team2 = p2 ? allTeams.find(t => t.id === p2.team_id) : null;
-
-            let p1Points = '-';
-            let p2Points = '-';
-            let p1Class = 'player-cell';
-            let p2Class = 'player-cell';
-            if (match.winner_id) {
-                p1Points = (match.winner_id === match.player1_id) ? 2 : (match.bonus_loser ? 1 : 0);
-                p2Points = (match.winner_id === match.player2_id) ? 2 : (match.bonus_loser ? 1 : 0);
-                p1Class += (match.winner_id === p1.id) ? ' winner' : ' loser';
-                p2Class += (match.winner_id === p2.id) ? ' winner' : ' loser';
-            }
-
-            const setsString = match.winner_id ? (match.sets || []).map(s => `${s.p1}/${s.p2}`).join(' ') : 'vs';
-
-            pdfHtml += `
-                <tr>
-                    <td class="cancha-cell">${match.location?.split(' - ')[1]?.replace('Cancha ','') || ''}</td>
-                    <td class="hora-cell">${match.match_time?.substring(0, 5) || ''} hs</td>
-                    <td class="${p1Class}">${p1?.name || ''}${team1?.image_url ? `<img src="${team1.image_url}" class="team-logo">` : ''}</td>
-                    <td class="score-cell"><span class="score-box ${p1Points === 2 ? 'score-box-winner' : p1Points === 1 ? 'score-box-bonus' : 'score-box-loser'}">${p1Points}</span></td>
-                    <td class="sets-cell">${setsString}</td>
-                    <td class="score-cell"><span class="score-box ${p2Points === 2 ? 'score-box-winner' : p2Points === 1 ? 'score-box-bonus' : 'score-box-loser'}">${p2Points}</span></td>
-                    <td class="${p2Class}">${p2?.name || ''}${team2?.image_url ? `<img src="${team2.image_url}" class="team-logo">` : ''}</td>
-                    <td class="category-cell">${allCategories.find(c => c.id === match.category_id)?.name || ''}</td>
-                </tr>
-            `;
-        });
-
-        pdfHtml += `
-                </tbody>
-            </table>
-        </div>`;
-    }
-
-    pdfHtml += `</div>`;
-
-    const element = document.createElement('div');
-    element.innerHTML = pdfHtml;
-    html2pdf(element, {
-        margin: 0,
-        filename: 'programa_partidos.pdf',
-        image: { type: 'jpeg', quality: 1.0 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#181818' },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    });
+    // Redirige a la página de programas después de un breve momento para que el usuario vea el mensaje
+    setTimeout(() => {
+        window.location.href = 'programs.html';
+    }, 1500);
 }
 
 // SECCIÓN: RENDERIZADO Y FILTRADO
@@ -671,8 +473,9 @@ function setupEventListeners() {
     const programBtn = document.getElementById('floating-program-btn');
     if (programBtn) programBtn.addEventListener('click', handleGenerateProgram);
 
+    // Remover el botón de PDF
     const pdfBtn = document.getElementById('floating-pdf-btn');
-    if (pdfBtn) pdfBtn.addEventListener('click', handleGeneratePdf);
+    if (pdfBtn) pdfBtn.style.display = 'none';
 
     // Formulario de creación de partido
     const matchForm = document.getElementById('match-form');
