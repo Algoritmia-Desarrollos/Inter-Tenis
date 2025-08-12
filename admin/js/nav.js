@@ -13,10 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const navLinks = [
         { href: 'tournaments.html', text: 'Torneos' },
         { href: 'matches.html', text: 'Partidos' },
+        { href: 'programs.html', text: 'Programas' },
         { href: 'players.html', text: 'Jugadores' },
         { href: 'teams.html', text: 'Equipos' },
         { href: 'categories.html', text: 'Categorías' },
-        { href: 'programs.html', text: 'Programas' }, // NUEVO ENLACE
+         // NUEVO ENLACE
         { href: 'rankings.html', text: 'Rankings' }
     ];
 

@@ -40,7 +40,7 @@
                     <select id="filter-by-team" class="filter-input"></select>
                     <select id="match-filter" class="filter-input">
                         <option value="all">Todos</option>
-                        <option value="pending">Pendientes</option>
+                        <option value="pending" selected>Pendientes</option>
                         <option value="completed">Completados</option>
                     </select>
                 </div>
@@ -65,8 +65,20 @@
                     </tbody>
                 </table>
              </div>
-             <div class="list-footer">
-                <button id="generate-program-btn" class="btn" disabled>Crear Programa de Seleccionados</button>
+             <div class="list-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <button id="generate-program-btn" class="btn" disabled>Crear Programa</button>
+                <div id="pagination-container" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <div class="list-filters">
+                        <label for="items-per-page">Partidos por página:</label>
+                        <select id="items-per-page" class="filter-input">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
+                    <div id="pagination-controls"></div>
+                </div>
              </div>
         </div>
     </main>
@@ -83,7 +95,7 @@
                 <button id="close-modal-btn" class="close-btn">&times;</button>
             </div>
             <div class="modal-body" id="modal-body-content">
-                </div>
+            </div>
         </div>
     </div>
     

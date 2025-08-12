@@ -1149,3 +1149,70 @@ input[type=number] { -moz-appearance: textfield; }
     height: 22px;
     line-height: 22px;
 }
+
+/* --- ESTILOS PARA ACCIONES EN MASA Y MODAL --- */
+.bulk-actions-container {
+    padding: 1rem;
+    background-color: var(--surface-light);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.selection-counter {
+    font-weight: 500;
+    color: var(--text-secondary-color);
+}
+
+.players-list-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.5rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-left-color 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.list-item.selected {
+    background-color: var(--surface-hover);
+    border-left-color: var(--primary-color);
+}
+
+.list-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+    pointer-events: none; /* El clic lo maneja el contenedor */
+}
+
+.list-item .player-info {
+    flex-grow: 1;
+}
+
+#bulk-edit-modal .modal-content {
+    padding: 2rem;
+    position: relative;
+}
+
+.modal .close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-secondary-color);
+    cursor: pointer;
+}
+.modal .close-button:hover {
+    color: var(--text-color);
+}
