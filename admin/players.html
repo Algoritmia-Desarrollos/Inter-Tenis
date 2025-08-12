@@ -39,8 +39,14 @@
                 <span id="selection-counter" class="selection-counter"></span>
             </div>
             <div class="players-list-header">
-                <input type="checkbox" id="select-all-checkbox">
-                <label for="select-all-checkbox">Seleccionar Todo</label>
+                <div class="player-col-select">
+                    <input type="checkbox" id="select-all-checkbox">
+                    <label for="select-all-checkbox" class="visually-hidden">Seleccionar Todo</label>
+                </div>
+                <div class="player-col-name"><strong>NOMBRE</strong></div>
+                <div class="player-col-category"><strong>CATEGORÍA</strong></div>
+                <div class="player-col-team"><strong>EQUIPO</strong></div>
+                <div class="player-col-actions"><strong>ACCIONES</strong></div>
             </div>
             <div id="players-list"></div>
         </div>

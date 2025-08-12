@@ -1,26 +1,26 @@
 // Lógica para la página de jugadores (players.html)
-document.addEventListener('DOMContentLoaded', async () => {
-    await populateSelects();
-    await renderPlayersList();
-
-    // Event Listeners
-    document.getElementById('player-form').addEventListener('submit', handlePlayerSubmit);
-    document.getElementById('cancel-edit-player').addEventListener('click', cancelPlayerEdit);
-    document.getElementById('search-player').addEventListener('input', renderPlayersList);
-    document.getElementById('filter-by-category').addEventListener('change', renderPlayersList);
-    document.getElementById('filter-by-team').addEventListener('change', renderPlayersList);
-
-    // Listeners para acciones en masa
-    document.getElementById('select-all-checkbox').addEventListener('change', handleSelectAll);
-    document.getElementById('bulk-delete-btn').addEventListener('click', handleBulkDelete);
-    document.getElementById('bulk-edit-btn').addEventListener('click', openBulkEditModal);
-    document.querySelector('#bulk-edit-modal .close-button').addEventListener('click', closeBulkEditModal);
-    document.getElementById('save-bulk-edit-btn').addEventListener('click', handleBulkEditSave);
-});
+document.addEventListener('DOMContentLoaded', initializePlayersPage);
 
 let selectedPlayerIds = new Set();
+let allCategories = [];
+let allTeams = [];
 
-async function populateSelects() {
+async function initializePlayersPage() {
+    await loadInitialData();
+    populateSelects();
+    await renderPlayersList();
+    setupEventListeners();
+}
+
+async function loadInitialData() {
+    const { data: categoriesData } = await supabase.from('categories').select('*');
+    if (categoriesData) allCategories = categoriesData;
+
+    const { data: teamsData } = await supabase.from('teams').select('*');
+    if (teamsData) allTeams = teamsData;
+}
+
+function populateSelects() {
     const selects = {
         category: document.getElementById('player-category'),
         team: document.getElementById('player-team'),
@@ -30,32 +30,37 @@ async function populateSelects() {
         bulkTeam: document.getElementById('bulk-player-team')
     };
 
+    // Limpiar y poblar selects
     selects.category.innerHTML = '<option value="">Seleccione categoría</option>';
+    allCategories.forEach(cat => selects.category.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
+
     selects.team.innerHTML = '<option value="">Seleccione equipo</option>';
+    allTeams.forEach(team => selects.team.innerHTML += `<option value="${team.id}">${team.name}</option>`);
+
     selects.categoryFilter.innerHTML = '<option value="all">Todas las Categorías</option>';
+    allCategories.forEach(cat => selects.categoryFilter.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
+
     selects.teamFilter.innerHTML = '<option value="all">Todos los Equipos</option>';
+    allTeams.forEach(team => selects.teamFilter.innerHTML += `<option value="${team.id}">${team.name}</option>`);
+
     selects.bulkCategory.innerHTML = '<option value="">No cambiar</option>';
+    allCategories.forEach(cat => selects.bulkCategory.innerHTML += `<option value="${cat.id}">${cat.name}</option>`);
+
     selects.bulkTeam.innerHTML = '<option value="">No cambiar</option>';
+    allTeams.forEach(team => selects.bulkTeam.innerHTML += `<option value="${team.id}">${team.name}</option>`);
+}
 
-    const { data: categories } = await supabase.from('categories').select('*');
-    if (categories) {
-        categories.forEach(cat => {
-            const option = `<option value="${cat.id}">${cat.name}</option>`;
-            selects.category.innerHTML += option;
-            selects.categoryFilter.innerHTML += option;
-            selects.bulkCategory.innerHTML += option;
-        });
-    }
-
-    const { data: teams } = await supabase.from('teams').select('*');
-    if (teams) {
-        teams.forEach(team => {
-            const option = `<option value="${team.id}">${team.name}</option>`;
-            selects.team.innerHTML += option;
-            selects.teamFilter.innerHTML += option;
-            selects.bulkTeam.innerHTML += option;
-        });
-    }
+function setupEventListeners() {
+    document.getElementById('player-form').addEventListener('submit', handlePlayerSubmit);
+    document.getElementById('cancel-edit-player').addEventListener('click', cancelPlayerEdit);
+    document.getElementById('search-player').addEventListener('input', renderPlayersList);
+    document.getElementById('filter-by-category').addEventListener('change', renderPlayersList);
+    document.getElementById('filter-by-team').addEventListener('change', renderPlayersList);
+    document.getElementById('select-all-checkbox').addEventListener('change', handleSelectAll);
+    document.getElementById('bulk-delete-btn').addEventListener('click', handleBulkDelete);
+    document.getElementById('bulk-edit-btn').addEventListener('click', openBulkEditModal);
+    document.querySelector('#bulk-edit-modal .close-button').addEventListener('click', closeBulkEditModal);
+    document.getElementById('save-bulk-edit-btn').addEventListener('click', handleBulkEditSave);
 }
 
 async function handlePlayerSubmit(event) {
@@ -96,7 +101,7 @@ async function renderPlayersList() {
     const categoryFilter = document.getElementById('filter-by-category').value;
     const teamFilter = document.getElementById('filter-by-team').value;
 
-    let query = supabase.from('players').select('*, categories(name), teams(name)');
+    let query = supabase.from('players').select('*, categories(name), teams(name, image_url)');
 
     if (searchTerm) query = query.ilike('name', `%${searchTerm}%`);
     if (categoryFilter !== 'all') query = query.eq('category_id', categoryFilter);
@@ -113,14 +118,29 @@ async function renderPlayersList() {
     players.forEach(player => {
         const categoryName = player.categories ? player.categories.name : 'Sin categoría';
         const teamName = player.teams ? player.teams.name : 'Sin equipo';
+        const teamImage = player.teams ? player.teams.image_url : null;
+
+        const teamImageHtml = teamImage
+            ? `<img src="${teamImage}" alt="${teamName}" class="team-image-small">`
+            : `<div class="team-image-placeholder-small"></div>`;
+
         const div = document.createElement('div');
-        div.className = 'list-item';
+        div.className = 'list-item player-row';
         div.innerHTML = `
-            <input type="checkbox" class="player-checkbox" data-id="${player.id}" ${selectedPlayerIds.has(player.id) ? 'checked' : ''}>
-            <div class="player-info">
-                <span><strong>${player.name}</strong><br><small style="color: var(--text-secondary-color);">${categoryName} - ${teamName}</small></span>
+            <div class="player-col-select">
+                <input type="checkbox" class="player-checkbox" data-id="${player.id}" ${selectedPlayerIds.has(player.id) ? 'checked' : ''}>
             </div>
-            <div class="actions">
+            <div class="player-col-name">
+                <strong>${player.name}</strong>
+            </div>
+            <div class="player-col-category">
+                ${categoryName}
+            </div>
+            <div class="player-col-team">
+                ${teamImageHtml}
+                <span>${teamName}</span>
+            </div>
+            <div class="player-col-actions actions">
                 <button class="btn" onclick='editPlayer(${JSON.stringify(player)})'>Editar</button>
                 <button class="btn btn-danger" onclick="deletePlayer(${player.id})">Eliminar</button>
             </div>

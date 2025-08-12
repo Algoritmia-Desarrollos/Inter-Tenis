@@ -87,8 +87,11 @@ function renderFilteredMatches() {
     }
 
     const filteredMatches = allMatchesData.filter(match => {
-        if (!match.player1 || !match.player2) return false;
-        
+        const p1Name = match.player1 ? match.player1.name.toLowerCase() : '';
+        const p2Name = match.player2 ? match.player2.name.toLowerCase() : '';
+        const p1Team = match.player1 ? match.player1.team_id : null;
+        const p2Team = match.player2 ? match.player2.team_id : null;
+
         let matchDate = null;
         if(match.match_date) {
             matchDate = new Date(match.match_date);
@@ -97,8 +100,8 @@ function renderFilteredMatches() {
         
         return (statusFilter === 'all' || (statusFilter === 'pending' && !match.winner_id) || (statusFilter === 'completed' && match.winner_id)) &&
                (categoryFilter === 'all' || match.category_id == categoryFilter) &&
-               (teamFilter === 'all' || (match.player1 && match.player1.team_id == teamFilter) || (match.player2 && match.player2.team_id == teamFilter)) &&
-               (match.player1.name.toLowerCase().includes(searchTerm) || match.player2.name.toLowerCase().includes(searchTerm)) &&
+               (teamFilter === 'all' || p1Team == teamFilter || p2Team == teamFilter) &&
+               (p1Name.includes(searchTerm) || p2Name.includes(searchTerm)) &&
                (!startDate || !matchDate || (matchDate >= startDate && matchDate <= endDate));
     });
 
@@ -130,19 +133,24 @@ function renderTablePage(matches) {
         const isPending = !match.winner_id;
         const date = new Date(match.match_date + 'T00:00:00');
         const matchDateTime = `${date.toLocaleDateString('es-ES', {weekday: 'long', day: '2-digit', month: 'long'})} ${match.match_time ? match.match_time.substring(0, 5) + 'hs' : ''}`;
+        
+        const p1Name = match.player1 ? match.player1.name : `<span class="error-text">Jugador no encontrado (ID: ${match.player1_id})</span>`;
+        const p2Name = match.player2 ? match.player2.name : `<span class="error-text">Jugador no encontrado (ID: ${match.player2_id})</span>`;
+        const winnerName = match.winner ? match.winner.name : (isPending ? 'Pendiente' : 'Completado');
+
         const p1ConfirmedIcon = match.p1_confirmed ? '<span class="status-icon confirmed">✔</span>' : '<span class="status-icon pending">?</span>';
         const p2ConfirmedIcon = match.p2_confirmed ? '<span class="status-icon confirmed">✔</span>' : '<span class="status-icon pending">?</span>';
         
+        const p1Toggle = match.player1 ? `<span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p1', ${!match.p1_confirmed})">${p1ConfirmedIcon} <strong>${p1Name}</strong></span>` : p1Name;
+        const p2Toggle = match.player2 ? `<span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p2', ${!match.p2_confirmed})">${p2ConfirmedIcon} <strong>${p2Name}</strong></span>` : p2Name;
+
         row.innerHTML = `
             <td>${isPending ? `<input type="checkbox" class="match-checkbox" data-id="${match.id}" onclick="event.stopPropagation()">` : ''}</td>
             <td>${matchDateTime}</td>
             <td>${match.tournaments ? match.tournaments.name : 'N/A'}</td>
-            <td>
-                <span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p1', ${!match.p1_confirmed})">${p1ConfirmedIcon} <strong>${match.player1.name}</strong></span> vs 
-                <span class="player-confirm-toggle" onclick="toggleConfirmation(event, ${match.id}, 'p2', ${!match.p2_confirmed})">${p2ConfirmedIcon} <strong>${match.player2.name}</strong></span>
-            </td>
+            <td>${p1Toggle} vs ${p2Toggle}</td>
             <td>${match.location}</td>
-            <td class="${isPending ? 'pending-cell' : 'winner-cell'}">${isPending ? 'Pendiente' : (match.winner ? match.winner.name : 'Completado')}</td>
+            <td class="${isPending ? 'pending-cell' : 'winner-cell'}">${winnerName}</td>
         `;
         fragment.appendChild(row);
     });

@@ -17,11 +17,61 @@
                 <input type="text" id="team-name" placeholder="Ej: Equipo Rojo" required>
             </div>
             <div class="form-group form-group-full">
+                <label for="team-image">Imagen del Equipo</label>
+                <input type="file" id="team-image" accept="image/*">
+            </div>
+            <div class="form-group form-group-full">
                 <button type="submit" class="btn">Guardar Equipo</button>
             </div>
         </form>
+        <div class="bulk-actions-container" id="bulk-actions-container" style="display: none;">
+            <span id="selection-counter">0 seleccionados</span>
+            <button id="bulk-delete-btn" class="btn btn-danger">Eliminar Seleccionados</button>
+        </div>
         <div id="teams-list" class="list-container"></div>
     </main>
+
+    <!-- Edit Modal -->
+    <div id="edit-team-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Equipo</h3>
+                <span class="close-btn" id="close-edit-modal-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-team-form" class="form-grid">
+                    <input type="hidden" id="edit-team-id">
+                    <div class="form-group form-group-full">
+                        <label for="edit-team-name">Nombre del Equipo</label>
+                        <input type="text" id="edit-team-name" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="edit-team-image">Cambiar Imagen del Equipo</label>
+                        <input type="file" id="edit-team-image" accept="image/*">
+                        <small>Deja este campo vacío si no quieres cambiar la imagen actual.</small>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <button type="submit" class="btn">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirmation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar Eliminación</h3>
+                <span class="close-btn" id="close-modal-btn">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Esta acción es irreversible. Para confirmar, escribe <strong id="confirmation-text-key">ELIMINAR</strong> en el campo de abajo.</p>
+                <input type="text" id="delete-confirmation-input" placeholder="Escribe aquí para confirmar">
+                <button id="confirm-delete-btn" class="btn btn-danger" disabled>Confirmar Eliminación</button>
+            </div>
+        </div>
+    </div>
     <div id="toast-container"></div>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
